@@ -1,0 +1,451 @@
+// This is your Prisma schema file
+// Learn more: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Referral {
+  id                          String   @id @default(uuid())
+  confirmationNumber          String   @unique
+  status                      ReferralStatus @default(SUBMITTED)
+  submittedAt                 DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+  deadlineDate                DateTime
+  daysElapsed                 Int      @default(0)
+
+  // Student Information
+  studentName                 String
+  dateOfBirth                 DateTime
+  age                         Int
+  grade                       String
+  gender                      String
+  fosterYouth                 Boolean
+  birthplace                  String
+
+  // Contact Information
+  parentGuardianName          String
+  homePhone                   String?
+  cellPhone                   String?
+  homeAddress                 String
+  city                        String
+  state                       String
+  zipCode                     String
+
+  // School Information
+  schoolOfAttendance          String
+  schoolOfResidence           String
+  transportationSpecialEd     Boolean
+
+  // Language & Demographics
+  nativeLanguage              String
+  englishLearner              Boolean
+  elStartDate                 DateTime?
+  redesignated                Boolean?
+  reclassificationDate        DateTime?
+  ethnicity                   String
+  residency                   String
+
+  // Placement Type
+  placementType               PlacementType
+
+  // Organizational Grouping
+  silo                        String?
+
+  // Disability Information
+  primaryDisability           String
+  disabilities                Json     // Additional disabilities stored as JSON
+
+  // Special Education Dates
+  spedEntryDate               DateTime
+  interimPlacementReviewDate  DateTime
+  triennialDue                DateTime
+
+  // Last Placement Information
+  lastPlacementSchool         String
+  lastPlacementDistrict       String
+  lastPlacementCounty         String
+  lastPlacementState          String
+  lastPlacementPhone          String?
+  lastPlacementContactPerson  String?
+
+  // Special Education Services (stored as JSON array)
+  specialEdServices           Json
+  percentageOutsideGenEd      Int
+
+  // District Authorization
+  leaRepresentativeName       String
+  leaRepresentativePosition   String
+  submittedByEmail            String?
+
+  // Packet Alignment Fields
+  currentIepDate              DateTime?
+  currentPsychoReportDate     DateTime?
+  nonSeisIep                  Boolean  @default(false)
+
+  // Additional Information
+  additionalComments          String?
+
+  // NEW: Rejection tracking
+  rejectionReason             String?
+  missingItems                Json?
+
+  // NEW: Review tracking
+  lastReviewedAt              DateTime?
+  lastReviewedBy              String?
+
+  // Relationships
+  documents                   Document[]
+  documentChecklistItems      DocumentChecklistItem[]
+  releaseOfInformation        ReleaseOfInformationMetadata?
+  statusHistory               StatusHistory[]
+  notes                       Note[]
+  assignedToStaffId           String?
+  assignedToStaff             User?     @relation("AssignedReferrals", fields: [assignedToStaffId], references: [id])
+  submittedByUserId           String?
+  submittedByUser             User?     @relation("SubmittedReferrals", fields: [submittedByUserId], references: [id])
+
+  @@index([status])
+  @@index([submittedAt])
+  @@index([deadlineDate])
+  @@index([confirmationNumber])
+  @@index([submittedByUserId])
+}
+
+model Document {
+  id              String   @id @default(uuid())
+  referralId      String
+  referral        Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  documentType    String   // 'studentRegistration', 'homeLanguageSurvey', etc.
+  fileName        String
+  filePath        String   // Supabase Storage path
+  fileSize        Int
+  mimeType        String
+
+  uploadedAt      DateTime @default(now())
+  uploadedBy      String?
+
+  verified        Boolean  @default(false)
+  verifiedAt      DateTime?
+  verifiedBy      String?
+
+  @@index([referralId])
+  @@index([documentType])
+}
+
+model DocumentChecklistItem {
+  id              String            @id @default(uuid())
+  referralId      String
+  referral        Referral          @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  type            ChecklistItemType
+  required        Boolean           @default(true)
+  status          ChecklistStatus   @default(PENDING)
+  reviewedAt      DateTime?
+  reviewedBy      String?
+  rejectionReason String?
+  version         Int               @default(1)
+
+  files           DocumentFile[]
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([referralId])
+  @@index([type])
+  @@index([status])
+}
+
+model DocumentFile {
+  id               String               @id @default(uuid())
+  checklistItemId  String
+  checklistItem    DocumentChecklistItem @relation(fields: [checklistItemId], references: [id], onDelete: Cascade)
+
+  fileName         String
+  filePath         String
+  fileSize         Int
+  mimeType         String
+
+  uploadedAt       DateTime             @default(now())
+  uploadedBy       String?
+
+  @@index([checklistItemId])
+}
+
+model ReleaseOfInformationMetadata {
+  id                String   @id @default(uuid())
+  referralId        String   @unique
+  referral          Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  disclosingName    String?
+  disclosingAddress String?
+  disclosingPhone   String?
+  disclosingFax     String?
+  receivingName     String?
+  receivingAddress  String?
+  receivingPhone    String?
+  receivingFax      String?
+
+  purpose           String?
+  informationRequested String?
+
+  effectiveDate     DateTime?
+  expirationDate    DateTime?
+  signedBy          String?
+  signedDate        DateTime?
+
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model StatusHistory {
+  id          String   @id @default(uuid())
+  referralId  String
+  referral    Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  fromStatus  ReferralStatus?
+  toStatus    ReferralStatus
+  changedAt   DateTime @default(now())
+  changedBy   String
+  reason      String?
+
+  @@index([referralId])
+  @@index([changedAt])
+}
+
+model Note {
+  id          String   @id @default(uuid())
+  referralId  String
+  referral    Referral @relation(fields: [referralId], references: [id], onDelete: Cascade)
+
+  noteType    NoteType
+  content     String
+  isImportant Boolean  @default(false)
+
+  createdAt   DateTime @default(now())
+  createdBy   String
+
+  @@index([referralId])
+  @@index([createdAt])
+}
+
+model User {
+  id                String         @id @default(uuid())
+  email             String         @unique
+  name              String
+  role              UserRole
+
+  // Authentication (Supabase Auth)
+  supabaseUserId    String?        @unique
+
+  // Profile
+  phoneNumber       String?
+  organization      String?
+  jobTitle          String?
+
+  // Status
+  isActive          Boolean        @default(true)
+  lastLoginAt       DateTime?
+
+  // Metadata
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  createdBy         String?
+
+  // Relationships
+  referralsAssigned Referral[]              @relation("AssignedReferrals")
+  referralsSubmitted Referral[]             @relation("SubmittedReferrals")
+  ordersRequested   Order[]                 @relation("OrderRequestor")
+  ordersApproved    Order[]                 @relation("OrderApprover")
+  orderStatusHistory OrderStatusHistory[]   @relation("OrderStatusHistoryChangedBy")
+  orderNotes        OrderNote[]             @relation("OrderNoteCreatedBy")
+
+  @@index([role])
+  @@index([supabaseUserId])
+  @@index([email])
+}
+
+// ==================== ORDER MANAGEMENT MODELS ====================
+
+model Order {
+  id                  String         @id @default(uuid())
+  orderNumber         String         @unique
+  status              OrderStatus    @default(PENDING)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+
+  // Order Details
+  justification       String
+  totalEstimatedPrice Decimal        @default(0) @db.Decimal(10, 2)
+  totalActualPrice    Decimal?       @db.Decimal(10, 2)
+
+  // Requestor Information
+  requestorId         String
+  requestor           User           @relation("OrderRequestor", fields: [requestorId], references: [id])
+  schoolSite          String
+
+  // Approval Workflow
+  approverId          String?
+  approver            User?          @relation("OrderApprover", fields: [approverId], references: [id])
+  approvedAt          DateTime?
+  rejectionReason     String?
+  lastStatusUpdate    DateTime?
+
+  // Tracking
+  purchaseOrderNumber String?
+  vendor              String?
+  trackingNumber      String?
+  expectedDelivery    DateTime?
+  receivedDate        DateTime?
+
+  // Budget Tracking (optional for v1)
+  budgetCategory      String?
+  fiscalYear          String?
+
+  // Relationships
+  items               OrderItem[]
+  statusHistory       OrderStatusHistory[]
+  notes               OrderNote[]
+  attachments         OrderAttachment[]
+
+  @@index([status])
+  @@index([requestorId])
+  @@index([createdAt])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id              String   @id @default(uuid())
+  orderId         String
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  itemName        String
+  itemLink        String?
+  estimatedPrice  Decimal  @db.Decimal(10, 2)
+  actualPrice     Decimal? @db.Decimal(10, 2)
+  quantity        Int      @default(1)
+
+  createdAt       DateTime @default(now())
+
+  @@index([orderId])
+}
+
+model OrderStatusHistory {
+  id              String      @id @default(uuid())
+  orderId         String
+  order           Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status          OrderStatus
+  createdAt       DateTime    @default(now())
+  changedByUserId String
+  changedBy       User        @relation("OrderStatusHistoryChangedBy", fields: [changedByUserId], references: [id])
+  notes           String?
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model OrderNote {
+  id            String   @id @default(uuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  content       String
+  noteType      NoteType @default(GENERAL)
+
+  createdAt     DateTime @default(now())
+  createdById   String
+  createdBy     User     @relation("OrderNoteCreatedBy", fields: [createdById], references: [id])
+
+  @@index([orderId])
+  @@index([createdAt])
+}
+
+model OrderAttachment {
+  id          String   @id @default(uuid())
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  description String?
+
+  uploadedAt  DateTime @default(now())
+  uploadedBy  String
+
+  @@index([orderId])
+}
+
+// ==================== ENUMS ====================
+
+enum ReferralStatus {
+  SUBMITTED
+  UNDER_REVIEW
+  MISSING_DOCUMENTS
+  PENDING_ADDITIONAL_INFO
+  PENDING_APPROVAL
+  APPROVED
+  ACCEPTED_AWAITING_PLACEMENT
+  REJECTED
+  ON_HOLD
+  COMPLETED
+}
+
+enum PlacementType {
+  FRA
+  SDC
+}
+
+enum UserRole {
+  EXTERNAL_ORG
+  TEACHER
+  SPED_STAFF
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum NoteType {
+  GENERAL
+  PHONE_CALL
+  EMAIL
+  MEETING
+  DOCUMENT_RECEIVED
+  DECISION_MADE
+}
+
+enum OrderStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  ORDERED
+  SHIPPED
+  RECEIVED
+  CANCELLED
+}
+
+enum ChecklistItemType {
+  STUDENT_REGISTRATION
+  HOME_LANGUAGE_SURVEY
+  IMMUNIZATION_RECORD
+  RELEASE_OF_INFORMATION
+  CURRENT_IEP
+  PSYCHO_ED_REPORT
+  INTERIM_PLACEMENT_FORM
+  TRANSCRIPTS
+}
+
+enum ChecklistStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  MISSING
+}
