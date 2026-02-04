@@ -4,6 +4,26 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/auth/hooks'
 import { hasPermission } from '@/lib/auth/permissions'
 import { useRouter } from 'next/navigation'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 
 type User = {
   id: string
@@ -18,16 +38,27 @@ type User = {
   createdAt: string
 }
 
+type UserFormData = {
+  email: string
+  name: string
+  role: 'EXTERNAL_ORG' | 'TEACHER' | 'SPED_STAFF' | 'ADMIN' | 'SUPER_ADMIN'
+  organization: string
+  phoneNumber: string
+  jobTitle: string
+}
+
 export default function UsersPage() {
   const { user: currentUser, loading: authLoading } = useAuth()
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
-  const [formData, setFormData] = useState({
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [formData, setFormData] = useState<UserFormData>({
     email: '',
     name: '',
-    role: 'TEACHER' as 'EXTERNAL_ORG' | 'TEACHER' | 'SPED_STAFF' | 'ADMIN',
+    role: 'TEACHER',
     organization: '',
     phoneNumber: '',
     jobTitle: '',
@@ -105,6 +136,57 @@ export default function UsersPage() {
     }
   }
 
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!editingUser) return
+
+    setSubmitting(true)
+    setError(null)
+    setSuccess(null)
+
+    try {
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          role: formData.role,
+          organization: formData.organization || null,
+          phoneNumber: formData.phoneNumber || null,
+          jobTitle: formData.jobTitle || null,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setSuccess(`User ${formData.name} updated successfully!`)
+        setShowEditModal(false)
+        setEditingUser(null)
+        fetchUsers()
+      } else {
+        setError(data.error || 'Failed to update user')
+      }
+    } catch (err) {
+      setError('An error occurred while updating the user')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const openEditModal = (user: User) => {
+    setEditingUser(user)
+    setFormData({
+      email: user.email,
+      name: user.name,
+      role: user.role as UserFormData['role'],
+      organization: user.organization || '',
+      phoneNumber: user.phoneNumber || '',
+      jobTitle: user.jobTitle || '',
+    })
+    setShowEditModal(true)
+  }
+
   const toggleUserStatus = async (userId: string, currentStatus: boolean) => {
     try {
       const response = await fetch(`/api/users/${userId}`, {
@@ -122,6 +204,25 @@ export default function UsersPage() {
       }
     } catch (err) {
       setError('An error occurred while updating user status')
+    }
+  }
+
+  const handleResetPassword = async (userId: string, userName: string) => {
+    if (!confirm(`Send password reset email to ${userName}?`)) return
+
+    try {
+      const response = await fetch(`/api/users/${userId}/reset-password`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        setSuccess(`Password reset email sent to ${userName}`)
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to send password reset email')
+      }
+    } catch (err) {
+      setError('An error occurred while resetting password')
     }
   }
 
@@ -154,9 +255,9 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto">
+    <div className="mx-auto max-w-[1600px]">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-warm-gray-900">User Management</h1>
+        <h1 className="text-3xl font-semibold text-warm-gray-900">User Management</h1>
         <p className="text-warm-gray-600 mt-1">Manage system users and permissions</p>
       </div>
 
@@ -172,93 +273,64 @@ export default function UsersPage() {
         </div>
       )}
 
-      <div className="bg-white rounded-xl border border-cream-200 shadow-sm">
-        <div className="p-6 border-b border-cream-200">
+      <Card>
+        <CardHeader>
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
-            <div className="flex-1 flex flex-col sm:flex-row gap-3 w-full">
-              <input
-                type="text"
-                placeholder="Search by name, email, or organization..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-              />
-              <select
-                value={filterRole}
-                onChange={(e) => setFilterRole(e.target.value)}
-                className="px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-              >
-                <option value="">All Roles</option>
-                <option value="EXTERNAL_ORG">External Organization</option>
-                <option value="TEACHER">Teacher</option>
-                <option value="SPED_STAFF">SPED Staff</option>
-                <option value="ADMIN">Administrator</option>
-              </select>
+            <div>
+              <CardTitle>Users</CardTitle>
+              <CardDescription>View and manage user accounts</CardDescription>
             </div>
             {hasPermission(currentUser.role, 'users:create') && (
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="px-4 py-2 bg-sage-600 text-white rounded-lg hover:bg-sage-700 transition-colors flex items-center gap-2 whitespace-nowrap"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <Button onClick={() => setShowAddModal(true)}>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 Add User
-              </button>
+              </Button>
             )}
           </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-cream-50 border-b border-cream-200">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-warm-gray-700 uppercase tracking-wider">
-                  Name
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-warm-gray-700 uppercase tracking-wider">
-                  Email
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-warm-gray-700 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-warm-gray-700 uppercase tracking-wider">
-                  Organization
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-warm-gray-700 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-warm-gray-700 uppercase tracking-wider">
-                  Last Login
-                </th>
-                {hasPermission(currentUser.role, 'users:update') && (
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-warm-gray-700 uppercase tracking-wider">
-                    Actions
-                  </th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-cream-200">
-              {users.map((user) => (
-                <tr key={user.id} className="hover:bg-cream-50 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="font-medium text-warm-gray-900">{user.name}</div>
-                    {user.jobTitle && (
-                      <div className="text-sm text-warm-gray-500">{user.jobTitle}</div>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-warm-gray-600">
-                    {user.email}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4">
+            <Input
+              placeholder="Search by name, email, or organization..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1"
+            />
+            <Select value={filterRole || 'all'} onValueChange={(value) => setFilterRole(value === 'all' ? '' : value)}>
+              <SelectTrigger className="w-full sm:w-[200px]">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                <SelectItem value="EXTERNAL_ORG">External Organization</SelectItem>
+                <SelectItem value="TEACHER">Teacher</SelectItem>
+                <SelectItem value="SPED_STAFF">SPED Staff</SelectItem>
+                <SelectItem value="ADMIN">Administrator</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {users.map((user) => (
+              <div
+                key={user.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 border border-cream-200 rounded-lg hover:bg-cream-50 transition-colors"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 bg-sky-100 rounded-full flex items-center justify-center text-sky-700 font-medium flex-shrink-0">
+                      {user.name.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <h3 className="font-medium text-warm-gray-900 truncate">{user.name}</h3>
+                      <p className="text-sm text-warm-gray-600 truncate">{user.email}</p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 ml-13">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColors[user.role]}`}>
                       {roleLabels[user.role]}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-warm-gray-600">
-                    {user.organization || '—'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
                     <span
                       className={`px-2.5 py-1 rounded-full text-xs font-medium ${
                         user.isActive
@@ -268,147 +340,234 @@ export default function UsersPage() {
                     >
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-warm-gray-600">
-                    {user.lastLoginAt
-                      ? new Date(user.lastLoginAt).toLocaleDateString()
-                      : 'Never'}
-                  </td>
-                  {hasPermission(currentUser.role, 'users:update') && (
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button
-                        onClick={() => toggleUserStatus(user.id, user.isActive)}
-                        className="text-sage-600 hover:text-sage-800 font-medium"
-                      >
-                        {user.isActive ? 'Deactivate' : 'Activate'}
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {users.length === 0 && (
-            <div className="text-center py-12 text-warm-gray-500">
-              No users found
-            </div>
-          )}
-        </div>
-      </div>
-
-      {showAddModal && (
-        <div className="fixed inset-0 bg-warm-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-cream-200">
-              <h2 className="text-2xl font-bold text-warm-gray-900">Add New User</h2>
-              <p className="text-warm-gray-600 mt-1">Create a new user account</p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                    Full Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                  />
+                    {user.organization && (
+                      <span className="text-xs text-warm-gray-600 px-2 py-1 bg-cream-100 rounded">
+                        {user.organization}
+                      </span>
+                    )}
+                    {user.jobTitle && (
+                      <span className="text-xs text-warm-gray-600 px-2 py-1 bg-cream-100 rounded">
+                        {user.jobTitle}
+                      </span>
+                    )}
+                  </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                    Email *
-                  </label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                    Role *
-                  </label>
-                  <select
-                    required
-                    value={formData.role}
-                    onChange={(e) => setFormData({ ...formData, role: e.target.value as any })}
-                    className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                  >
-                    <option value="TEACHER">Teacher</option>
-                    <option value="SPED_STAFF">SPED Staff</option>
-                    <option value="ADMIN">Administrator</option>
-                    <option value="EXTERNAL_ORG">External Organization</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    value={formData.phoneNumber}
-                    onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
-                    className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                    Organization
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.organization}
-                    onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
-                    className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                    Job Title
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.jobTitle}
-                    onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
-                    className="w-full px-4 py-2 border border-cream-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-sage-500"
-                  />
-                </div>
+                {hasPermission(currentUser.role, 'users:update') && (
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => openEditModal(user)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleResetPassword(user.id, user.name)}
+                    >
+                      Reset Password
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => toggleUserStatus(user.id, user.isActive)}
+                    >
+                      {user.isActive ? 'Deactivate' : 'Activate'}
+                    </Button>
+                  </div>
+                )}
               </div>
-
-              <div className="flex gap-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowAddModal(false)
-                    setError(null)
-                  }}
-                  className="flex-1 px-4 py-2 border border-cream-300 text-warm-gray-700 rounded-lg hover:bg-cream-50 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="flex-1 px-4 py-2 bg-sage-600 text-white rounded-lg hover:bg-sage-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {submitting ? 'Creating...' : 'Create User'}
-                </button>
+            ))}
+            {users.length === 0 && (
+              <div className="text-center py-12 text-warm-gray-500">
+                No users found
               </div>
-            </form>
+            )}
           </div>
-        </div>
-      )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>Create a new user account</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">Role *</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => setFormData({ ...formData, role: value as UserFormData['role'] })}
+                >
+                  <SelectTrigger id="role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TEACHER">Teacher</SelectItem>
+                    <SelectItem value="SPED_STAFF">SPED Staff</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Administrator</SelectItem>
+                    <SelectItem value="EXTERNAL_ORG">External Organization</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                <Input
+                  id="phoneNumber"
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="organization">Organization</Label>
+                <Input
+                  id="organization"
+                  value={formData.organization}
+                  onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="jobTitle">Job Title</Label>
+                <Input
+                  id="jobTitle"
+                  value={formData.jobTitle}
+                  onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowAddModal(false)
+                  setError(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? 'Creating...' : 'Create User'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Full Name *</Label>
+                <Input
+                  id="edit-name"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={formData.email}
+                  disabled
+                  className="bg-cream-50"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-role">Role *</Label>
+                <Select
+                  value={formData.role}
+                  onValueChange={(value) => setFormData({ ...formData, role: value as UserFormData['role'] })}
+                >
+                  <SelectTrigger id="edit-role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TEACHER">Teacher</SelectItem>
+                    <SelectItem value="SPED_STAFF">SPED Staff</SelectItem>
+                    <SelectItem value="ADMIN">Administrator</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Administrator</SelectItem>
+                    <SelectItem value="EXTERNAL_ORG">External Organization</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-phoneNumber">Phone Number</Label>
+                <Input
+                  id="edit-phoneNumber"
+                  type="tel"
+                  value={formData.phoneNumber}
+                  onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-organization">Organization</Label>
+                <Input
+                  id="edit-organization"
+                  value={formData.organization}
+                  onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-jobTitle">Job Title</Label>
+                <Input
+                  id="edit-jobTitle"
+                  value={formData.jobTitle}
+                  onChange={(e) => setFormData({ ...formData, jobTitle: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingUser(null)
+                  setError(null)
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={submitting}>
+                {submitting ? 'Updating...' : 'Update User'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

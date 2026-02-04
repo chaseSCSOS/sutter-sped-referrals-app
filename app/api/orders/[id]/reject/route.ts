@@ -47,11 +47,11 @@ export async function POST(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    // Update order status to REJECTED
+    // Update order status to CANCELLED
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: {
-        status: 'REJECTED',
+        status: 'CANCELLED',
         rejectionReason: reason,
         lastStatusUpdate: new Date(),
       },
@@ -70,9 +70,9 @@ export async function POST(
     await prisma.orderStatusHistory.create({
       data: {
         orderId: id,
-        status: 'REJECTED',
+        status: 'CANCELLED',
         changedByUserId: user.id,
-        notes: `Order rejected: ${reason}`,
+        notes: `Order cancelled due to rejection: ${reason}`,
       },
     })
 

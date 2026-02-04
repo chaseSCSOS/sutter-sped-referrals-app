@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/auth/permissions'
 import { z } from 'zod'
@@ -7,7 +8,7 @@ import { z } from 'zod'
 const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
-  role: z.enum(['EXTERNAL_ORG', 'TEACHER', 'SPED_STAFF', 'ADMIN']),
+  role: z.enum(['EXTERNAL_ORG', 'TEACHER', 'SPED_STAFF', 'ADMIN', 'SUPER_ADMIN']),
   organization: z.string().optional(),
   phoneNumber: z.string().optional(),
   jobTitle: z.string().optional(),
@@ -51,8 +52,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user in Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+    // Create user in Supabase Auth using admin client
+    const adminClient = createAdminClient()
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email: validatedData.email,
       email_confirm: true,
       user_metadata: {

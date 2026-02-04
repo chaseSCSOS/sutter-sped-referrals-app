@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { createClient } from '@/lib/supabase/client'
 
 export default function LoginPage() {
@@ -48,15 +49,16 @@ export default function LoginPage() {
         </div>
 
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
-              <svg className="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">SPEDex</h1>
-              <p className="text-sky-100 text-sm">Sutter County Superintendent of Schools</p>
+          <div className="mb-8">
+            <div className="bg-white rounded-2xl p-6 inline-block shadow-lg">
+              <Image
+                src="/scsos-logo.png"
+                alt="Sutter County Superintendent of Schools"
+                width={300}
+                height={80}
+                priority
+                className="h-auto w-auto max-w-[300px]"
+              />
             </div>
           </div>
         </div>
@@ -120,13 +122,17 @@ export default function LoginPage() {
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="lg:hidden text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 bg-gradient-to-br from-sky-600 to-sky-700 shadow-lg">
-              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
+            <div className="inline-block">
+              <Image
+                src="/scsos-logo.png"
+                alt="Sutter County Superintendent of Schools"
+                width={250}
+                height={70}
+                priority
+                className="h-auto w-auto max-w-[250px]"
+              />
             </div>
-            <h1 className="text-2xl font-bold text-warm-gray-900 mb-1">SPEDex</h1>
-            <p className="text-warm-gray-600 text-sm">Sutter County Special Education Portal</p>
+            <p className="text-warm-gray-600 text-sm mt-4">Special Education Portal</p>
           </div>
 
           <div className="bg-white rounded-2xl shadow-xl border border-cream-200/80 p-8 lg:p-10">

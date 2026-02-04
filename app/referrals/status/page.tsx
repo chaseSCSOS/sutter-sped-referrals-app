@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 import StatusBadge from '@/app/dashboard/referrals/components/status-badge'
 
 function StatusLookupContent() {
@@ -39,8 +40,20 @@ function StatusLookupContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-12 px-4">
       <div className="max-w-2xl mx-auto">
-        {/* Header */}
+        {/* Logo and Header */}
         <div className="text-center mb-8">
+          <div className="inline-block mb-6">
+            <div className="bg-white rounded-2xl p-6 shadow-xl">
+              <Image
+                src="/scsos-logo.png"
+                alt="Sutter County Superintendent of Schools"
+                width={300}
+                height={80}
+                priority
+                className="h-auto w-auto max-w-[300px]"
+              />
+            </div>
+          </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Check Referral Status</h1>
           <p className="text-gray-600">
             Enter your confirmation number to view your referral status

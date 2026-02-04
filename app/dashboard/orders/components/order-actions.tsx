@@ -20,9 +20,9 @@ export default function OrderActions({ orderId, currentStatus }: OrderActionsPro
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [showNoteModal, setShowNoteModal] = useState(false)
 
-  const canApprove = ['PENDING', 'UNDER_REVIEW'].includes(currentStatus)
-  const canReject = ['PENDING', 'UNDER_REVIEW'].includes(currentStatus)
-  const canUpdateStatus = !['CANCELLED', 'RECEIVED'].includes(currentStatus)
+  const canApprove = ['NEW'].includes(currentStatus)
+  const canReject = ['NEW'].includes(currentStatus)
+  const canUpdateStatus = !['CANCELLED', 'COMPLETED'].includes(currentStatus)
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">

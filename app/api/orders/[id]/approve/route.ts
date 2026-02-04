@@ -40,11 +40,11 @@ export async function POST(
       return NextResponse.json({ error: 'Order not found' }, { status: 404 })
     }
 
-    // Update order status to APPROVED
+    // Update order status to SHIPPED
     const updatedOrder = await prisma.order.update({
       where: { id },
       data: {
-        status: 'APPROVED',
+        status: 'SHIPPED',
         approverId: user.id,
         approvedAt: new Date(),
         lastStatusUpdate: new Date(),
@@ -71,9 +71,9 @@ export async function POST(
     await prisma.orderStatusHistory.create({
       data: {
         orderId: id,
-        status: 'APPROVED',
+        status: 'SHIPPED',
         changedByUserId: user.id,
-        notes: notes || 'Order approved',
+        notes: notes || 'Order approved and marked as shipped',
       },
     })
 

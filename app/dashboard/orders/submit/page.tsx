@@ -91,21 +91,21 @@ export default function SubmitOrderPage() {
   )
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-4xl mx-auto">
       {/* Header */}
-      <div className="mb-8 animate-fade-in-up">
-        <div className="flex items-center gap-3 mb-3">
+      <div className="mb-6 animate-fade-in-up">
+        <div className="flex items-center gap-3 mb-2">
           <div
-            className="w-12 h-12 rounded-xl bg-gradient-to-br from-sky-600 to-sky-700 flex items-center justify-center"
-            style={{ boxShadow: '0 8px 16px rgba(75, 119, 116, 0.25)' }}
+            className="w-10 h-10 rounded-lg bg-gradient-to-br from-sky-600 to-sky-700 flex items-center justify-center"
+            style={{ boxShadow: '0 6px 12px rgba(75, 119, 116, 0.2)' }}
           >
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
             </svg>
           </div>
           <div>
-            <h1 className="text-3xl font-bold text-warm-gray-900">Submit Order Request</h1>
-            <p className="text-warm-gray-600 mt-1">Request materials or equipment for your classroom</p>
+            <h1 className="text-2xl font-semibold text-warm-gray-900">Submit Order Request</h1>
+            <p className="text-sm text-warm-gray-600">Request materials or equipment for your classroom</p>
           </div>
         </div>
       </div>
@@ -122,10 +122,10 @@ export default function SubmitOrderPage() {
 
         {/* Items Section */}
         <div className="mb-6">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-3">
             <div>
-              <h2 className="text-lg font-semibold text-warm-gray-900">Order Items</h2>
-              <p className="text-sm text-warm-gray-600">Add one or more products to your order</p>
+              <h2 className="text-base font-semibold text-warm-gray-900">Order Items</h2>
+              <p className="text-xs text-warm-gray-600">Add one or more products to your order</p>
             </div>
             <button
               type="button"
@@ -137,54 +137,54 @@ export default function SubmitOrderPage() {
                   quantity: 1,
                 })
               }
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-sky-700 bg-sky-50 rounded-xl hover:bg-sky-100 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 rounded-lg hover:bg-sky-100 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
               </svg>
               Add Item
             </button>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {fields.map((field, index) => (
               <div
                 key={field.id}
-                className="bg-white rounded-2xl p-6 border border-cream-200 animate-fade-in"
-                style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}
+                className="bg-white rounded-xl p-4 border border-cream-200 animate-fade-in"
+                style={{ boxShadow: '0 1px 6px rgba(0, 0, 0, 0.04)' }}
               >
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-sm font-semibold">
+                    <div className="w-7 h-7 rounded-md bg-sky-100 text-sky-700 flex items-center justify-center text-xs font-semibold">
                       {index + 1}
                     </div>
-                    <h3 className="font-medium text-warm-gray-900">Item {index + 1}</h3>
+                    <h3 className="text-sm font-medium text-warm-gray-900">Item {index + 1}</h3>
                   </div>
                   {fields.length > 1 && (
                     <button
                       type="button"
                       onClick={() => remove(index)}
-                      className="text-coral-600 hover:text-coral-700 p-1 rounded-lg hover:bg-coral-50 transition-colors"
+                      className="text-coral-600 hover:text-coral-700 p-1 rounded-md hover:bg-coral-50 transition-colors"
                       aria-label="Remove item"
                     >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                       </svg>
                     </button>
                   )}
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {/* Item Name */}
                   <div>
-                    <label htmlFor={`items.${index}.itemName`} className="block text-sm font-medium text-warm-gray-700 mb-2">
+                    <label htmlFor={`items.${index}.itemName`} className="block text-xs font-medium text-warm-gray-700 mb-1.5">
                       Item Name *
                     </label>
                     <input
                       id={`items.${index}.itemName`}
                       type="text"
                       {...register(`items.${index}.itemName`)}
-                      className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-warm-gray-900 placeholder-warm-gray-400"
+                      className="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm text-warm-gray-900 placeholder-warm-gray-400"
                       placeholder="e.g., Noise-canceling headphones"
                       style={{ outline: 'none' }}
                     />
@@ -200,12 +200,12 @@ export default function SubmitOrderPage() {
 
                   {/* Product Link */}
                   <div>
-                    <label htmlFor={`items.${index}.itemLink`} className="block text-sm font-medium text-warm-gray-700 mb-2">
+                    <label htmlFor={`items.${index}.itemLink`} className="block text-xs font-medium text-warm-gray-700 mb-1.5">
                       Product Link <span className="text-warm-gray-500 font-normal">(Optional)</span>
                     </label>
                     <div className="relative">
                       <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <svg className="h-5 w-5 text-warm-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="h-4 w-4 text-warm-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
                       </div>
@@ -213,7 +213,7 @@ export default function SubmitOrderPage() {
                         id={`items.${index}.itemLink`}
                         type="url"
                         {...register(`items.${index}.itemLink`)}
-                        className="w-full pl-10 pr-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-warm-gray-900 placeholder-warm-gray-400"
+                        className="w-full pl-9 pr-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm text-warm-gray-900 placeholder-warm-gray-400"
                         placeholder="https://amazon.com/..."
                         style={{ outline: 'none' }}
                       />
@@ -231,12 +231,12 @@ export default function SubmitOrderPage() {
                   {/* Price and Quantity Grid */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor={`items.${index}.estimatedPrice`} className="block text-sm font-medium text-warm-gray-700 mb-2">
+                      <label htmlFor={`items.${index}.estimatedPrice`} className="block text-xs font-medium text-warm-gray-700 mb-1.5">
                         Estimated Price * ($)
                       </label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <span className="text-warm-gray-500 text-lg">$</span>
+                          <span className="text-warm-gray-500 text-base">$</span>
                         </div>
                         <input
                           id={`items.${index}.estimatedPrice`}
@@ -244,7 +244,7 @@ export default function SubmitOrderPage() {
                           step="0.01"
                           min="0.01"
                           {...register(`items.${index}.estimatedPrice`, { valueAsNumber: true })}
-                          className="w-full pl-8 pr-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-warm-gray-900 placeholder-warm-gray-400"
+                          className="w-full pl-7 pr-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm text-warm-gray-900 placeholder-warm-gray-400"
                           placeholder="29.99"
                           style={{ outline: 'none' }}
                         />
@@ -260,7 +260,7 @@ export default function SubmitOrderPage() {
                     </div>
 
                     <div>
-                      <label htmlFor={`items.${index}.quantity`} className="block text-sm font-medium text-warm-gray-700 mb-2">
+                      <label htmlFor={`items.${index}.quantity`} className="block text-xs font-medium text-warm-gray-700 mb-1.5">
                         Quantity *
                       </label>
                       <input
@@ -268,7 +268,7 @@ export default function SubmitOrderPage() {
                         type="number"
                         min="1"
                         {...register(`items.${index}.quantity`, { valueAsNumber: true })}
-                        className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-warm-gray-900 placeholder-warm-gray-400"
+                        className="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm text-warm-gray-900 placeholder-warm-gray-400"
                         style={{ outline: 'none' }}
                       />
                       {errors.items?.[index]?.quantity && (
@@ -284,9 +284,9 @@ export default function SubmitOrderPage() {
 
                   {/* Item subtotal */}
                   {items[index] && items[index].estimatedPrice > 0 && (
-                    <div className="bg-cream-100 rounded-lg px-4 py-2 flex items-center justify-between">
-                      <span className="text-sm font-medium text-warm-gray-700">Item Subtotal</span>
-                      <span className="text-lg font-semibold text-warm-gray-900">
+                    <div className="bg-cream-100 rounded-md px-3 py-2 flex items-center justify-between">
+                      <span className="text-xs font-medium text-warm-gray-700">Item Subtotal</span>
+                      <span className="text-base font-semibold text-warm-gray-900">
                         ${((items[index].estimatedPrice || 0) * (items[index].quantity || 1)).toFixed(2)}
                       </span>
                     </div>
@@ -308,35 +308,35 @@ export default function SubmitOrderPage() {
 
         {/* Total Estimate Display */}
         {totalEstimate > 0 && (
-          <div className="mb-6 bg-gradient-to-br from-sky-50 to-sky-100/50 rounded-2xl p-6 border border-sky-200">
+          <div className="mb-5 bg-gradient-to-br from-sky-50 to-sky-100/50 rounded-xl p-4 border border-sky-200">
             <div className="flex items-center justify-between">
               <div>
-                <span className="text-sm font-medium text-sky-900">Order Total Estimate</span>
-                <p className="text-xs text-sky-700 mt-0.5">{fields.length} item{fields.length > 1 ? 's' : ''}</p>
+                <span className="text-xs font-semibold text-sky-900">Order Total Estimate</span>
+                <p className="text-xs text-sky-700">{fields.length} item{fields.length > 1 ? 's' : ''}</p>
               </div>
-              <span className="text-3xl font-bold text-sky-700">${totalEstimate.toFixed(2)}</span>
+              <span className="text-2xl font-bold text-sky-700">${totalEstimate.toFixed(2)}</span>
             </div>
           </div>
         )}
 
         {/* Order Details Card */}
         <div
-          className="bg-white rounded-2xl p-6 border border-cream-200 mb-6"
-          style={{ boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' }}
+          className="bg-white rounded-xl p-4 border border-cream-200 mb-5"
+          style={{ boxShadow: '0 1px 6px rgba(0, 0, 0, 0.04)' }}
         >
-          <h2 className="text-lg font-semibold text-warm-gray-900 mb-4">Order Details</h2>
+          <h2 className="text-base font-semibold text-warm-gray-900 mb-3">Order Details</h2>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* School Site */}
             <div>
-              <label htmlFor="schoolSite" className="block text-sm font-medium text-warm-gray-700 mb-2">
+              <label htmlFor="schoolSite" className="block text-xs font-medium text-warm-gray-700 mb-1.5">
                 School/Site *
               </label>
               <input
                 id="schoolSite"
                 type="text"
                 {...register('schoolSite')}
-                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-warm-gray-900 placeholder-warm-gray-400"
+                className="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm text-warm-gray-900 placeholder-warm-gray-400"
                 placeholder="e.g., Lincoln Elementary"
                 style={{ outline: 'none' }}
               />
@@ -352,14 +352,14 @@ export default function SubmitOrderPage() {
 
             {/* Justification */}
             <div>
-              <label htmlFor="justification" className="block text-sm font-medium text-warm-gray-700 mb-2">
+              <label htmlFor="justification" className="block text-xs font-medium text-warm-gray-700 mb-1.5">
                 Educational Justification *
               </label>
               <textarea
                 id="justification"
                 {...register('justification')}
-                rows={6}
-                className="w-full px-4 py-3 bg-cream-50 border border-cream-200 rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-warm-gray-900 placeholder-warm-gray-400 resize-none"
+                rows={5}
+                className="w-full px-3.5 py-2.5 bg-cream-50 border border-cream-200 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all text-sm text-warm-gray-900 placeholder-warm-gray-400 resize-none"
                 placeholder="Explain why these items are needed for student education. Include how they will be used, which students will benefit, and any relevant IEP goals or accommodations."
                 style={{ outline: 'none' }}
               />
@@ -379,18 +379,18 @@ export default function SubmitOrderPage() {
         </div>
 
         {/* Action buttons */}
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={() => router.back()}
-            className="flex-1 px-6 py-3 bg-cream-100 text-warm-gray-700 rounded-xl hover:bg-cream-200 font-medium transition-all"
+            className="flex-1 px-4 py-2.5 bg-cream-100 text-warm-gray-700 rounded-lg text-sm font-medium transition-all hover:bg-cream-200"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={submitting}
-            className="flex-1 px-6 py-3 bg-sky-600 hover:bg-sky-700 rounded-xl font-medium text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-sky-600/25 hover:shadow-xl hover:shadow-sky-600/35 transform hover:-translate-y-0.5"
+            className="flex-1 px-4 py-2.5 bg-sky-600 hover:bg-sky-700 rounded-lg text-sm font-semibold text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md shadow-sky-600/20 hover:shadow-lg hover:shadow-sky-600/25"
           >
             {submitting ? 'Submitting...' : 'Submit Order Request'}
           </button>

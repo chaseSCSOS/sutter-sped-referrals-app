@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const order = await prisma.order.create({
       data: {
         orderNumber,
-        status: 'PENDING',
+        status: 'NEW',
         schoolSite: validatedData.schoolSite,
         justification: validatedData.justification,
         totalEstimatedPrice,
@@ -77,9 +77,9 @@ export async function POST(request: NextRequest) {
     await prisma.orderStatusHistory.create({
       data: {
         orderId: order.id,
-        status: 'PENDING',
+        status: 'NEW',
         changedByUserId: user.id,
-        notes: 'Order submitted',
+        notes: 'Order created',
       },
     })
 

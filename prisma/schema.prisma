@@ -276,7 +276,7 @@ model User {
 model Order {
   id                  String         @id @default(uuid())
   orderNumber         String         @unique
-  status              OrderStatus    @default(PENDING)
+  status              OrderStatus    @default(NEW)
   createdAt           DateTime       @default(now())
   updatedAt           DateTime       @updatedAt
 
@@ -422,13 +422,10 @@ enum NoteType {
 }
 
 enum OrderStatus {
-  PENDING
-  UNDER_REVIEW
-  APPROVED
-  REJECTED
-  ORDERED
+  NEW
   SHIPPED
   RECEIVED
+  COMPLETED
   CANCELLED
 }
 

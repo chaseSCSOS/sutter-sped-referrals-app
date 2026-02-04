@@ -3,6 +3,7 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { useAuth } from '@/lib/auth/hooks'
+import { getDynamicDashboardMessage } from '@/lib/utils/dynamic-messages'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ActivityFeed } from './components/activity-feed'
@@ -40,6 +41,8 @@ export default function DashboardPage() {
   const { user } = useAuth()
 
   if (!user) return null
+
+  const dynamicMessage = getDynamicDashboardMessage(user.name)
 
   const quickActions: Array<{
     title: string
@@ -192,9 +195,9 @@ export default function DashboardPage() {
                 Dashboard
               </p>
               <h1 className="text-3xl font-semibold text-warm-gray-900 sm:text-4xl">
-                Welcome back, {user.name.split(' ')[0]}
+                {dynamicMessage.greeting}
               </h1>
-              <p className="mt-1 text-sm text-warm-gray-600">{getRoleDescription()}</p>
+              <p className="mt-1 text-sm text-warm-gray-600">{dynamicMessage.subtitle}</p>
             </div>
             <Badge className="self-start sm:self-auto">{user.role.replaceAll('_', ' ')}</Badge>
           </div>

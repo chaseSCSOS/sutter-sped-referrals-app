@@ -11,24 +11,18 @@ interface UpdateStatusModalProps {
 }
 
 const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  PENDING: ['UNDER_REVIEW', 'CANCELLED'],
-  UNDER_REVIEW: ['APPROVED', 'REJECTED', 'CANCELLED'],
-  APPROVED: ['ORDERED', 'CANCELLED'],
-  REJECTED: [],
-  ORDERED: ['SHIPPED', 'CANCELLED'],
-  SHIPPED: ['RECEIVED'],
-  RECEIVED: [],
+  NEW: ['SHIPPED', 'CANCELLED'],
+  SHIPPED: ['RECEIVED', 'CANCELLED'],
+  RECEIVED: ['COMPLETED', 'CANCELLED'],
+  COMPLETED: [],
   CANCELLED: [],
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  PENDING: 'Pending',
-  UNDER_REVIEW: 'Under Review',
-  APPROVED: 'Approved',
-  REJECTED: 'Rejected',
-  ORDERED: 'Ordered',
+  NEW: 'New',
   SHIPPED: 'Shipped',
   RECEIVED: 'Received',
+  COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 }
 
@@ -126,22 +120,6 @@ export default function UpdateStatusModal({
                 onChange={(e) => setTrackingNumber(e.target.value)}
                 className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
                 placeholder="e.g., 1Z999AA10123456784"
-              />
-            </div>
-          )}
-
-          {status === 'ORDERED' && (
-            <div>
-              <label htmlFor="purchaseOrderNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Purchase Order Number
-              </label>
-              <input
-                id="purchaseOrderNumber"
-                type="text"
-                value={purchaseOrderNumber}
-                onChange={(e) => setPurchaseOrderNumber(e.target.value)}
-                className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
-                placeholder="e.g., PO-2026-001"
               />
             </div>
           )}

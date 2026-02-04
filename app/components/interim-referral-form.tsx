@@ -5,6 +5,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { interimReferralSchema, type InterimReferralFormData } from './schema';
 import { Button } from '@/components/ui/button';
+import Image from 'next/image';
 
 export default function InterimReferralForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -114,12 +115,23 @@ export default function InterimReferralForm() {
 
   return (
     <div className="max-w-5xl mx-auto p-8 panel rounded-2xl">
-      <div className="mb-6">
+      {/* Logo Header */}
+      <div className="mb-6 text-center border-b border-cream-200/70 pb-6">
+        <div className="inline-block mb-4">
+          <Image
+            src="/scsos-logo.png"
+            alt="Sutter County Superintendent of Schools"
+            width={350}
+            height={90}
+            priority
+            className="h-auto w-auto max-w-[350px]"
+          />
+        </div>
         <h1 className="text-3xl font-semibold text-warm-gray-900 mb-2">
           Interim Placement Referral
         </h1>
         <p className="text-warm-gray-600 text-sm">
-          Sutter County Superintendent of Schools - Interim Special Education Services
+          Interim Special Education Services
         </p>
       </div>
 

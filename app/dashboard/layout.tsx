@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuth } from '@/lib/auth/hooks'
 import { hasPermission } from '@/lib/auth/permissions'
 
@@ -157,9 +158,18 @@ export default function DashboardLayout({
         }`}
       >
         <div className="h-full flex flex-col rounded-2xl overflow-hidden">
-          <div className="p-5 border-b border-cream-200 bg-sky-50">
-            <h1 className="text-xl font-semibold text-sky-700">SPEDex</h1>
-            <p className="text-xs text-sky-600 mt-0.5">{user.organization || 'Sutter County Superintendent of Schools'}</p>
+          <div className="p-4 border-b border-cream-200 bg-white">
+            <div className="flex items-center justify-center mb-2">
+              <Image
+                src="/scsos-logo.png"
+                alt="Sutter County Superintendent of Schools"
+                width={180}
+                height={48}
+                priority
+                className="h-auto w-auto max-w-[180px]"
+              />
+            </div>
+            <p className="text-xs text-warm-gray-600 text-center">Special Education Portal</p>
           </div>
 
           <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto bg-cream-50">
@@ -216,7 +226,14 @@ export default function DashboardLayout({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
           </button>
-          <h2 className="text-lg font-semibold text-warm-gray-900">SPEDex</h2>
+          <Image
+            src="/scsos-logo.png"
+            alt="Sutter County Superintendent of Schools"
+            width={150}
+            height={40}
+            priority
+            className="h-auto w-auto max-w-[150px]"
+          />
         </header>
 
         <main className="p-4 lg:p-6">
