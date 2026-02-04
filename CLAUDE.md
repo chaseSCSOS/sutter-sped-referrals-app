@@ -279,8 +279,13 @@ try {
 4. **Date Handling**: Use `date-fns` library for date operations
 5. **Status Enums**:
    - Referral: SUBMITTED, UNDER_REVIEW, MISSING_DOCUMENTS, PENDING_ADDITIONAL_INFO, PENDING_APPROVAL, APPROVED, ACCEPTED_AWAITING_PLACEMENT, REJECTED, ON_HOLD, COMPLETED
-   - Order: PENDING, UNDER_REVIEW, APPROVED, REJECTED, ORDERED, SHIPPED, RECEIVED, CANCELLED
+   - Order: NEW, SHIPPED, RECEIVED, COMPLETED, CANCELLED
    - Checklist: PENDING, ACCEPTED, REJECTED, MISSING
+   - **Note**: Order statuses were consolidated from 8 to 5 in February 2025:
+     - NEW replaces PENDING and UNDER_REVIEW
+     - SHIPPED replaces APPROVED and ORDERED
+     - CANCELLED replaces REJECTED
+     - COMPLETED is a new terminal status for orders delivered to teachers
 6. **Primary Disability**: The `primaryDisability` field stores the disability code (e.g., '210', '220') marked as 'P' (Primary) in the disabilities JSON object. API routes automatically extract this when creating referrals.
 7. **Silo Field**: Optional organizational grouping field (`silo`) used for internal tracking and enrollment projections
 8. **Audit Trails**: Always create StatusHistory/OrderStatusHistory entries when changing status

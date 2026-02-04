@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 
       pendingOrders = await prisma.order.count({
         where: {
-          status: 'PENDING',
+          status: 'NEW',
         },
       })
     } else if (user.role === 'EXTERNAL_ORG') {
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
       pendingOrders = await prisma.order.count({
         where: {
           requestorId: user.id,
-          status: 'PENDING',
+          status: 'NEW',
         },
       })
     }

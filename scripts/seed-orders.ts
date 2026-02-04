@@ -28,7 +28,7 @@ async function main() {
   const sampleOrders = [
     {
       orderNumber: 'ORD-2025-0001',
-      status: OrderStatus.PENDING,
+      status: OrderStatus.NEW,
       justification: 'Need sensory processing tools for students with tactile sensitivities in classroom 3A.',
       schoolSite: 'Sutter Elementary',
       requestorId: teacher.id,
@@ -44,7 +44,7 @@ async function main() {
     },
     {
       orderNumber: 'ORD-2025-0002',
-      status: OrderStatus.UNDER_REVIEW,
+      status: OrderStatus.NEW,
       justification: 'Students with fine motor challenges require specialized grips for writing assignments.',
       schoolSite: 'Sutter Elementary',
       requestorId: teacher.id,
@@ -61,7 +61,7 @@ async function main() {
     },
     {
       orderNumber: 'ORD-2025-0003',
-      status: OrderStatus.APPROVED,
+      status: OrderStatus.SHIPPED,
       justification: 'Visual supports needed for students with autism to improve daily transitions.',
       schoolSite: 'Sutter Middle School',
       requestorId: teacher.id,
@@ -80,7 +80,7 @@ async function main() {
     },
     {
       orderNumber: 'ORD-2025-0004',
-      status: OrderStatus.ORDERED,
+      status: OrderStatus.SHIPPED,
       justification: 'Annual software license renewal for augmentative communication devices used by non-verbal students.',
       schoolSite: 'Sutter High School',
       requestorId: teacher.id,
@@ -154,7 +154,7 @@ async function main() {
     },
     {
       orderNumber: 'ORD-2025-0007',
-      status: OrderStatus.REJECTED,
+      status: OrderStatus.CANCELLED,
       justification: 'Need for assistive technology access.',
       schoolSite: 'Sutter High School',
       requestorId: teacher.id,
@@ -168,6 +168,31 @@ async function main() {
           itemName: 'Tablet Computer iPad Pro',
           itemLink: 'https://example.com/ipad-pro',
           estimatedPrice: 1099.00,
+          quantity: 1,
+        },
+      ],
+    },
+    {
+      orderNumber: 'ORD-2025-0008',
+      status: OrderStatus.COMPLETED,
+      justification: 'Leveled reading materials needed for students with reading disabilities in intervention groups.',
+      schoolSite: 'Sutter Elementary',
+      requestorId: teacher.id,
+      approverId: spedStaff.id,
+      approvedAt: new Date('2024-12-20'),
+      purchaseOrderNumber: 'PO-2024-1099',
+      vendor: 'Educational Resources Co.',
+      trackingNumber: 'FEDEX-987654321012',
+      receivedDate: new Date('2025-01-05'),
+      lastStatusUpdate: new Date('2025-01-10'),
+      totalEstimatedPrice: 450.00,
+      totalActualPrice: 445.00,
+      items: [
+        {
+          itemName: 'Leveled Reading Book Set (Levels A-Z)',
+          itemLink: 'https://example.com/reading-books',
+          estimatedPrice: 450.00,
+          actualPrice: 445.00,
           quantity: 1,
         },
       ],
@@ -215,8 +240,8 @@ async function main() {
   console.log('\n✅ Order seeding completed!')
   console.log(`\n📊 Sample orders created for teacher@sutter.k12.ca.us`)
   console.log(`   - Total orders: ${sampleOrders.length}`)
-  console.log(`   - PENDING: 1, UNDER_REVIEW: 1, APPROVED: 1`)
-  console.log(`   - ORDERED: 1, SHIPPED: 1, RECEIVED: 1, REJECTED: 1`)
+  console.log(`   - NEW: 2, SHIPPED: 3, RECEIVED: 1`)
+  console.log(`   - COMPLETED: 1, CANCELLED: 1`)
 }
 
 main()

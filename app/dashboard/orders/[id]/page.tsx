@@ -114,9 +114,9 @@ export default async function OrderDetailPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Rejection Reason */}
-      {order.status === 'REJECTED' && order.rejectionReason && (
+      {order.status === 'CANCELLED' && order.rejectionReason && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-          <h3 className="text-sm font-semibold text-red-900 mb-2">Rejection Reason</h3>
+          <h3 className="text-sm font-semibold text-red-900 mb-2">Cancellation Reason</h3>
           <p className="text-red-800">{order.rejectionReason}</p>
         </div>
       )}

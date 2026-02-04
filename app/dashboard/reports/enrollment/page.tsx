@@ -168,47 +168,47 @@ export default function EnrollmentReportPage() {
   const { stats } = reportData
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="max-w-[1600px] mx-auto space-y-5">
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Enrollment Projections</h1>
-        <p className="text-gray-600 mt-1">View and analyze referral data for enrollment planning</p>
+      <div>
+        <h1 className="text-2xl font-semibold text-sky-700">Enrollment Projections</h1>
+        <p className="text-sm text-warm-gray-600">View and analyze referral data for enrollment planning</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+        <h2 className="text-base font-semibold text-warm-gray-900 mb-3">Filters</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
               Start Date
             </label>
             <input
               type="date"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
+              className="w-full rounded-lg border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
               End Date
             </label>
             <input
               type="date"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
+              className="w-full rounded-lg border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-xs font-semibold text-gray-700 mb-1">
               Status
             </label>
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
+              className="w-full rounded-lg border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
             >
               <option value="">All Statuses</option>
               <option value="SUBMITTED">Submitted</option>
@@ -219,22 +219,22 @@ export default function EnrollmentReportPage() {
             </select>
           </div>
         </div>
-        <div className="flex gap-3 mt-4">
+        <div className="flex flex-wrap gap-2 mt-3">
           <button
             onClick={handleApplyFilters}
-            className="px-4 py-2 bg-sky-600 text-white rounded-xl hover:bg-sky-700"
+            className="px-3.5 py-2 bg-sky-600 text-white rounded-lg text-sm font-semibold hover:bg-sky-700"
           >
             Apply Filters
           </button>
           <button
             onClick={handleClearFilters}
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300"
+            className="px-3.5 py-2 bg-cream-100 text-warm-gray-700 rounded-lg text-sm font-semibold hover:bg-cream-200"
           >
             Clear Filters
           </button>
           <button
             onClick={exportToCSV}
-            className="ml-auto px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700"
+            className="ml-auto px-3.5 py-2 bg-sage-600 text-white rounded-lg text-sm font-semibold hover:bg-sage-700"
           >
             Export to CSV
           </button>
@@ -242,105 +242,105 @@ export default function EnrollmentReportPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Total Referrals</h3>
-          <p className="text-3xl font-bold text-sky-700">{stats.totalReferrals}</p>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-xs font-semibold text-warm-gray-600 mb-1">Total Referrals</h3>
+          <p className="text-2xl font-bold text-sky-700">{stats.totalReferrals}</p>
         </div>
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Awaiting Placement</h3>
-          <p className="text-3xl font-bold text-emerald-600">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-xs font-semibold text-warm-gray-600 mb-1">Awaiting Placement</h3>
+          <p className="text-2xl font-bold text-emerald-600">
             {stats.byStatus['ACCEPTED_AWAITING_PLACEMENT'] || 0}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Under Review</h3>
-          <p className="text-3xl font-bold text-yellow-600">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-xs font-semibold text-warm-gray-600 mb-1">Under Review</h3>
+          <p className="text-2xl font-bold text-yellow-600">
             {stats.byStatus['UNDER_REVIEW'] || 0}
           </p>
         </div>
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-sm font-medium text-gray-600 mb-2">Completed</h3>
-          <p className="text-3xl font-bold text-teal-600">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-xs font-semibold text-warm-gray-600 mb-1">Completed</h3>
+          <p className="text-2xl font-bold text-teal-600">
             {stats.byStatus['COMPLETED'] || 0}
           </p>
         </div>
       </div>
 
       {/* Detailed Breakdowns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* By Grade */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">By Grade Level</h3>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-base font-semibold text-warm-gray-900 mb-3">By Grade Level</h3>
+          <div className="space-y-1.5">
             {Object.entries(stats.byGrade)
               .sort(([a], [b]) => a.localeCompare(b))
               .map(([grade, count]) => (
                 <div key={grade} className="flex justify-between items-center">
-                  <span className="text-gray-700">{grade}</span>
-                  <span className="font-semibold text-gray-900">{count}</span>
+                  <span className="text-sm text-warm-gray-700">{grade}</span>
+                  <span className="text-sm font-semibold text-warm-gray-900">{count}</span>
                 </div>
               ))}
           </div>
         </div>
 
         {/* By Primary Disability */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">By Primary Disability</h3>
-          <div className="space-y-2 max-h-96 overflow-y-auto">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-base font-semibold text-warm-gray-900 mb-3">By Primary Disability</h3>
+          <div className="space-y-1.5 max-h-96 overflow-y-auto">
             {Object.entries(stats.byPrimaryDisability)
               .sort(([, a], [, b]) => b - a)
               .map(([code, count]) => (
                 <div key={code} className="flex justify-between items-center">
-                  <span className="text-gray-700 text-sm">
+                  <span className="text-sm text-warm-gray-700">
                     {DISABILITY_LABELS[code] || code}
                   </span>
-                  <span className="font-semibold text-gray-900">{count}</span>
+                  <span className="text-sm font-semibold text-warm-gray-900">{count}</span>
                 </div>
               ))}
           </div>
         </div>
 
         {/* By Silo */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">By Silo</h3>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-base font-semibold text-warm-gray-900 mb-3">By Silo</h3>
+          <div className="space-y-1.5">
             {Object.entries(stats.bySilo)
               .sort(([, a], [, b]) => b - a)
               .map(([silo, count]) => (
                 <div key={silo} className="flex justify-between items-center">
-                  <span className="text-gray-700">{silo}</span>
-                  <span className="font-semibold text-gray-900">{count}</span>
+                  <span className="text-sm text-warm-gray-700">{silo}</span>
+                  <span className="text-sm font-semibold text-warm-gray-900">{count}</span>
                 </div>
               ))}
           </div>
         </div>
 
         {/* By Placement Type */}
-        <div className="bg-white rounded-xl shadow p-6">
-          <h3 className="text-lg font-semibold mb-4">By Placement Type</h3>
-          <div className="space-y-2">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-base font-semibold text-warm-gray-900 mb-3">By Placement Type</h3>
+          <div className="space-y-1.5">
             {Object.entries(stats.byPlacementType).map(([type, count]) => (
               <div key={type} className="flex justify-between items-center">
-                <span className="text-gray-700">
+                <span className="text-sm text-warm-gray-700">
                   {type === 'FRA' ? 'FRA (Functionally Related Academic)' : 'SDC (Special Day Class)'}
                 </span>
-                <span className="font-semibold text-gray-900">{count}</span>
+                <span className="text-sm font-semibold text-warm-gray-900">{count}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* By Status */}
-        <div className="bg-white rounded-xl shadow p-6 md:col-span-2">
-          <h3 className="text-lg font-semibold mb-4">By Status</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4 md:col-span-2">
+          <h3 className="text-base font-semibold text-warm-gray-900 mb-3">By Status</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Object.entries(stats.byStatus)
               .sort(([, a], [, b]) => b - a)
               .map(([status, count]) => (
-                <div key={status} className="text-center p-4 bg-gray-50 rounded-xl">
-                  <p className="text-2xl font-bold text-gray-900">{count}</p>
-                  <p className="text-sm text-gray-600 mt-1">
+                <div key={status} className="text-center p-3 bg-cream-50/70 border border-cream-200/70 rounded-lg">
+                  <p className="text-xl font-bold text-warm-gray-900">{count}</p>
+                  <p className="text-xs text-warm-gray-600 mt-1">
                     {status.replace(/_/g, ' ')}
                   </p>
                 </div>
