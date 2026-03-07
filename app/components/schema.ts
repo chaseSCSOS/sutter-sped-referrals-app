@@ -21,6 +21,9 @@ const disabilitySchema = z.object({
 // Special Education Service schema (repeatable)
 const specialEdServiceSchema = z.object({
   service: z.string().min(1, 'Service is required'),
+  serviceType: z.enum(['Individual', 'Group'] as const, {
+    message: 'Service type is required',
+  }),
   frequency: z.string().min(1, 'Frequency is required'),
   duration: z.string().min(1, 'Duration is required'),
   location: z.string().min(1, 'Location is required'),
@@ -68,6 +71,7 @@ export const interimReferralSchema = z
       message: 'English Learner status is required',
     }),
     elStartDate: z.string().optional(),
+    elBecameDate: z.string().optional(),
     redesignated: z.enum(['Yes', 'No'] as const).optional(),
     reclassificationDate: z.string().optional(),
     ethnicity: z.string().min(1, 'Ethnicity is required'),
@@ -86,16 +90,11 @@ export const interimReferralSchema = z
 
     // Section 7: Special Education Dates
     spedEntryDate: z.string().min(1, 'SPED entry date is required'),
-    interimPlacementReviewDate: z
-      .string()
-      .min(1, 'Interim placement review date is required'),
     triennialDue: z.string().min(1, 'Triennial due date is required'),
 
     // Document Dates
-    currentIepDate: z.string().min(1, 'Current IEP date is required'),
-    currentPsychoReportDate: z
-      .string()
-      .min(1, 'Current Psychoeducational Report date is required'),
+    currentIepDate: z.string().optional(),
+    currentPsychoReportDate: z.string().optional(),
     nonSeisIep: z.enum(['Yes', 'No'] as const, {
       message: 'Please indicate if the IEP is non-SEIS',
     }),
@@ -142,6 +141,19 @@ export const interimReferralSchema = z
   )
   .refine(
     (data) => {
+      // If English Learner is Yes, elBecameDate is required
+      if (data.englishLearner === 'Yes' && !data.elBecameDate) {
+        return false;
+      }
+      return true;
+    },
+    {
+      message: 'Date when they became an English learner is required when English Learner is Yes',
+      path: ['elBecameDate'],
+    }
+  )
+  .refine(
+    (data) => {
       // If English Learner is Yes, redesignated status is required
       if (data.englishLearner === 'Yes' && !data.redesignated) {
         return false;
@@ -149,7 +161,7 @@ export const interimReferralSchema = z
       return true;
     },
     {
-      message: 'Redesignated status is required when English Learner is Yes',
+      message: 'Reclassified status is required when English Learner is Yes',
       path: ['redesignated'],
     }
   )
@@ -162,7 +174,7 @@ export const interimReferralSchema = z
       return true;
     },
     {
-      message: 'Reclassification Date is required when Redesignated is Yes',
+      message: 'Reclassification Date is required when Reclassified is Yes',
       path: ['reclassificationDate'],
     }
   )

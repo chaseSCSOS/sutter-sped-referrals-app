@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import ReferralCard from './referral-card'
 import ReferralTable from './referral-table'
+import Pagination from '@/components/ui/pagination'
 import type { ReferralStatus } from '@prisma/client'
 
 interface ReferralListProps {
@@ -13,6 +14,9 @@ export default function ReferralList({ initialReferrals = [] }: ReferralListProp
   const [referrals, setReferrals] = useState(initialReferrals)
   const [loading, setLoading] = useState(false)
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [total, setTotal] = useState(0)
   const [filters, setFilters] = useState({
     status: '',
     search: '',
@@ -20,7 +24,11 @@ export default function ReferralList({ initialReferrals = [] }: ReferralListProp
 
   useEffect(() => {
     fetchReferrals()
-  }, [filters])
+  }, [filters, page])
+
+  useEffect(() => {
+    setPage(1)
+  }, [filters.status, filters.search])
 
   async function fetchReferrals() {
     setLoading(true)
@@ -28,11 +36,17 @@ export default function ReferralList({ initialReferrals = [] }: ReferralListProp
       const params = new URLSearchParams()
       if (filters.status) params.set('status', filters.status)
       if (filters.search) params.set('search', filters.search)
+      params.set('page', String(page))
+      params.set('limit', '20')
 
       const response = await fetch(`/api/referrals?${params}`)
       if (response.ok) {
         const data = await response.json()
         setReferrals(data.referrals || [])
+        if (data.pagination) {
+          setTotalPages(data.pagination.pages)
+          setTotal(data.pagination.total)
+        }
       }
     } catch (error) {
       console.error('Failed to fetch referrals:', error)
@@ -114,7 +128,7 @@ export default function ReferralList({ initialReferrals = [] }: ReferralListProp
               </span>
             ) : (
               <>
-                <span className="font-semibold text-slate-900">{referrals.length}</span> referral{referrals.length !== 1 ? 's' : ''} found
+                <span className="font-semibold text-slate-900">{total}</span> referral{total !== 1 ? 's' : ''} found
               </>
             )}
           </p>
@@ -197,6 +211,8 @@ export default function ReferralList({ initialReferrals = [] }: ReferralListProp
           ))}
         </div>
       )}
+
+      <Pagination currentPage={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 }

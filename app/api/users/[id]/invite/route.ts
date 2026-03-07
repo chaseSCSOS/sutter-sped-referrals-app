@@ -1,0 +1,78 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { prisma } from '@/lib/prisma'
+import { hasPermission } from '@/lib/auth/permissions'
+import { sendUserInvitationEmail } from '@/lib/email'
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+    const redirectTo = `${appUrl}/auth/callback?next=/dashboard`
+    const supabase = await createClient()
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser()
+
+    if (!authUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { supabaseUserId: authUser.id },
+    })
+
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    if (!hasPermission(user.role, 'users:update')) {
+      return NextResponse.json({ error: 'Insufficient permissions' }, { status: 403 })
+    }
+
+    const targetUser = await prisma.user.findUnique({
+      where: { id },
+    })
+
+    if (!targetUser || !targetUser.supabaseUserId) {
+      return NextResponse.json({ error: 'Target user not found' }, { status: 404 })
+    }
+
+    const adminClient = createAdminClient()
+    const { data, error } = await adminClient.auth.admin.generateLink({
+      type: 'recovery',
+      email: targetUser.email,
+      options: {
+        redirectTo,
+      },
+    })
+
+    if (error || !data?.properties?.action_link) {
+      console.error('Invite link generation error:', error)
+      return NextResponse.json(
+        { error: 'Failed to send invitation email' },
+        { status: 500 }
+      )
+    }
+
+    await sendUserInvitationEmail({
+      recipientName: targetUser.name,
+      recipientEmail: targetUser.email,
+      role: targetUser.role,
+      actionLink: data.properties.action_link,
+      sentByName: user.name,
+    })
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    console.error('Error sending invitation email:', error)
+    return NextResponse.json(
+      { error: 'Failed to send invitation email' },
+      { status: 500 }
+    )
+  }
+}

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/auth/permissions'
 import type { ReferralStatus } from '@prisma/client'
+import { sendReferralStatusChangeEmail } from '@/lib/email'
 
 interface RouteParams {
   params: Promise<{
@@ -76,7 +77,17 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       },
     })
 
-    // TODO: Send email notification (Phase 4)
+    // Send status change email to submitter
+    if (referral.submittedByEmail) {
+      sendReferralStatusChangeEmail(
+        referral.submittedByEmail,
+        referral.studentName,
+        referral.confirmationNumber,
+        status,
+        reason,
+        id
+      ).catch((err) => console.error('[email] referral status change email failed:', err))
+    }
 
     return NextResponse.json({
       success: true,

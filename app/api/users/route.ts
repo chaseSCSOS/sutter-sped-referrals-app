@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/auth/permissions'
+import { sendUserInvitationEmail } from '@/lib/email'
+import type { Prisma } from '@prisma/client'
 import { z } from 'zod'
 
 const createUserSchema = z.object({
@@ -39,6 +41,8 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
     const validatedData = createUserSchema.parse(body)
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+    const redirectTo = `${appUrl}/auth/callback?next=/dashboard`
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -85,9 +89,41 @@ export async function POST(request: NextRequest) {
       },
     })
 
+    let inviteSent = false
+    let warning: string | null = null
+
+    try {
+      const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+        type: 'recovery',
+        email: validatedData.email,
+        options: {
+          redirectTo,
+        },
+      })
+
+      if (linkError || !linkData?.properties?.action_link) {
+        console.error('Failed to generate invitation link:', linkError)
+        warning = 'User was created, but invitation email could not be sent.'
+      } else {
+        await sendUserInvitationEmail({
+          recipientName: validatedData.name,
+          recipientEmail: validatedData.email,
+          role: validatedData.role,
+          actionLink: linkData.properties.action_link,
+          sentByName: user.name,
+        })
+        inviteSent = true
+      }
+    } catch (inviteError) {
+      console.error('Failed to send invitation email:', inviteError)
+      warning = 'User was created, but invitation email could not be sent.'
+    }
+
     return NextResponse.json(
       {
         success: true,
+        inviteSent,
+        warning,
         user: {
           id: newUser.id,
           email: newUser.email,
@@ -141,7 +177,7 @@ export async function GET(request: NextRequest) {
     const role = searchParams.get('role')
     const search = searchParams.get('search')
 
-    const where: any = {}
+    const where: Prisma.UserWhereInput = {}
 
     if (role) {
       where.role = role

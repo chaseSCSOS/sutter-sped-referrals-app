@@ -14,6 +14,7 @@ model Referral {
   id                          String   @id @default(uuid())
   confirmationNumber          String   @unique
   status                      ReferralStatus @default(SUBMITTED)
+  formType                    FormType @default(INTERIM)
   submittedAt                 DateTime @default(now())
   updatedAt                   DateTime @updatedAt
   deadlineDate                DateTime
@@ -22,65 +23,68 @@ model Referral {
   // Student Information
   studentName                 String
   dateOfBirth                 DateTime
-  age                         Int
+  age                         Int?
   grade                       String
-  gender                      String
-  fosterYouth                 Boolean
-  birthplace                  String
+  gender                      String?
+  fosterYouth                 Boolean?
+  birthplace                  String?
+
+  // Form-type-specific metadata (JSON, used by DHH Itinerant and future forms)
+  formMetadata                Json?
 
   // Contact Information
-  parentGuardianName          String
+  parentGuardianName          String?
   homePhone                   String?
   cellPhone                   String?
-  homeAddress                 String
-  city                        String
-  state                       String
-  zipCode                     String
+  homeAddress                 String?
+  city                        String?
+  state                       String?
+  zipCode                     String?
 
   // School Information
-  schoolOfAttendance          String
-  schoolOfResidence           String
-  transportationSpecialEd     Boolean
+  schoolOfAttendance          String?
+  schoolOfResidence           String?
+  transportationSpecialEd     Boolean?
 
   // Language & Demographics
-  nativeLanguage              String
-  englishLearner              Boolean
+  nativeLanguage              String?
+  englishLearner              Boolean?
   elStartDate                 DateTime?
   redesignated                Boolean?
   reclassificationDate        DateTime?
-  ethnicity                   String
-  residency                   String
+  ethnicity                   String?
+  residency                   String?
 
   // Placement Type
-  placementType               PlacementType
+  placementType               PlacementType?
 
   // Organizational Grouping
   silo                        String?
 
   // Disability Information
-  primaryDisability           String
-  disabilities                Json     // Additional disabilities stored as JSON
+  primaryDisability           String?
+  disabilities                Json?    // Additional disabilities stored as JSON
 
   // Special Education Dates
-  spedEntryDate               DateTime
-  interimPlacementReviewDate  DateTime
-  triennialDue                DateTime
+  spedEntryDate               DateTime?
+  interimPlacementReviewDate  DateTime?
+  triennialDue                DateTime?
 
   // Last Placement Information
-  lastPlacementSchool         String
-  lastPlacementDistrict       String
-  lastPlacementCounty         String
-  lastPlacementState          String
+  lastPlacementSchool         String?
+  lastPlacementDistrict       String?
+  lastPlacementCounty         String?
+  lastPlacementState          String?
   lastPlacementPhone          String?
   lastPlacementContactPerson  String?
 
   // Special Education Services (stored as JSON array)
-  specialEdServices           Json
-  percentageOutsideGenEd      Int
+  specialEdServices           Json?
+  percentageOutsideGenEd      Int?
 
   // District Authorization
-  leaRepresentativeName       String
-  leaRepresentativePosition   String
+  leaRepresentativeName       String?
+  leaRepresentativePosition   String?
   submittedByEmail            String?
 
   // Packet Alignment Fields
@@ -308,6 +312,11 @@ model Order {
   budgetCategory      String?
   fiscalYear          String?
 
+  // Protocol/Assessment orders
+  orderType             OrderType      @default(SUPPLY)
+  assessmentCategoryId  String?
+  assessmentCategory    AssessmentCategory? @relation(fields: [assessmentCategoryId], references: [id])
+
   // Relationships
   items               OrderItem[]
   statusHistory       OrderStatusHistory[]
@@ -330,6 +339,10 @@ model OrderItem {
   estimatedPrice  Decimal  @db.Decimal(10, 2)
   actualPrice     Decimal? @db.Decimal(10, 2)
   quantity        Int      @default(1)
+
+  // Protocol orders link items to catalog tests
+  assessmentTestId    String?
+  assessmentTest      AssessmentTest? @relation(fields: [assessmentTestId], references: [id])
 
   createdAt       DateTime @default(now())
 
@@ -429,6 +442,17 @@ enum OrderStatus {
   CANCELLED
 }
 
+enum OrderType {
+  SUPPLY
+  PROTOCOL_ASSESSMENT
+}
+
+enum FormType {
+  INTERIM
+  DHH_ITINERANT
+  LEVEL_II
+}
+
 enum ChecklistItemType {
   STUDENT_REGISTRATION
   HOME_LANGUAGE_SURVEY
@@ -438,6 +462,20 @@ enum ChecklistItemType {
   PSYCHO_ED_REPORT
   INTERIM_PLACEMENT_FORM
   TRANSCRIPTS
+  RATIONALE_FOR_REFERRAL
+  MULTIDISCIPLINARY_TEAM_REPORT
+  BEHAVIOR_ASSESSMENT
+  INTERVENTION_STRATEGIES
+  CURRENT_ACADEMIC_ASSESSMENT
+  REPORTS_OTHER_AGENCIES
+  CURRENT_BEHAVIOR_PLAN
+  IEP_DOCUMENTATION
+  PRIMARY_MODE_OF_LEARNING
+  PRESCRIBED_MEDICATION
+  AUDIOGRAM_CHART
+  DHH_REFERRAL_REQUEST
+  ACCOMMODATIONS_MODIFICATIONS
+  AUDIOLOGY_REPORT
 }
 
 enum ChecklistStatus {
@@ -445,4 +483,63 @@ enum ChecklistStatus {
   ACCEPTED
   REJECTED
   MISSING
+}
+
+model EmailSettings {
+  id                   String   @id @default(cuid())
+  orderNotifyEmails    String[]
+  referralNotifyEmails String[]
+  updatedAt            DateTime @updatedAt
+  updatedById          String?
+}
+
+model AssessmentCategory {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String?
+  isActive    Boolean           @default(true)
+  sortOrder   Int               @default(0)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tests       AssessmentTest[]
+  orders      Order[]
+
+  @@index([isActive])
+}
+
+model AssessmentVendor {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String?
+  website     String?
+  isActive    Boolean           @default(true)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  tests       AssessmentTest[]
+
+  @@index([isActive])
+}
+
+model AssessmentTest {
+  id                  String             @id @default(uuid())
+  name                String
+  vendorId            String
+  vendor              AssessmentVendor   @relation(fields: [vendorId], references: [id])
+  categoryId          String
+  category            AssessmentCategory @relation(fields: [categoryId], references: [id])
+  purchaseUrl         String?
+  estimatedPrice      Decimal            @default(0) @db.Decimal(10, 2)
+  isPhysical          Boolean            @default(true)
+  isActive            Boolean            @default(true)
+  notes               String?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  orderItems          OrderItem[]
+
+  @@index([vendorId])
+  @@index([categoryId])
+  @@index([isActive])
 }

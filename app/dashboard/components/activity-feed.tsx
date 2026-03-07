@@ -59,7 +59,7 @@ export function ActivityFeed() {
 
   if (!activity) {
     return (
-      <p className="text-sm text-gray-500">Unable to load recent activity.</p>
+      <p className="text-sm text-warm-gray-500">Unable to load recent activity.</p>
     )
   }
 
@@ -104,14 +104,15 @@ export function ActivityFeed() {
           UNDER_REVIEW: 'bg-yellow-100 text-yellow-700',
           APPROVED: 'bg-green-100 text-green-700',
           REJECTED: 'bg-red-100 text-red-700',
-          PENDING: 'bg-gray-100 text-gray-700',
+          NEW: 'bg-blue-100 text-blue-700',
+          PENDING: 'bg-cream-100 text-warm-gray-700',
         }
 
         return (
           <Link
             key={`${item.type}-${item.id}`}
             href={item.href}
-            className="group block rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-gray-300 hover:shadow-sm"
+            className="group block rounded-xl border border-cream-200 bg-white p-4 transition-all hover:border-cream-300 hover:shadow-sm"
           >
             <div className="flex items-start gap-3">
               <div className={`mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg ${isReferral ? 'bg-sky-100 text-sky-700' : 'bg-purple-100 text-purple-700'}`}>
@@ -128,16 +129,16 @@ export function ActivityFeed() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate group-hover:text-sky-700 transition-colors">
+                    <p className="text-sm font-medium text-warm-gray-900 truncate group-hover:text-sky-700 transition-colors">
                       {item.title}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{item.subtitle}</p>
+                    <p className="text-xs text-warm-gray-500 mt-0.5">{item.subtitle}</p>
                   </div>
                   <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[item.status] || statusColors.PENDING}`}>
                     {item.status.replace(/_/g, ' ')}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-warm-gray-400 mt-2">
                   {formatDistanceToNow(item.timestamp, { addSuffix: true })} • by {item.submittedBy}
                 </p>
               </div>
@@ -155,19 +156,19 @@ export function ActivityStats({ pendingReferrals, pendingOrders }: { pendingRefe
       {pendingReferrals > 0 && (
         <Link
           href="/dashboard/referrals?status=SUBMITTED,UNDER_REVIEW"
-          className="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-sky-300 hover:shadow-sm"
+          className="rounded-xl border border-cream-200 bg-white p-4 transition-all hover:border-sky-300 hover:shadow-sm"
         >
-          <p className="text-2xl font-bold text-gray-900">{pendingReferrals}</p>
-          <p className="text-xs text-gray-500 mt-1">Pending Referrals</p>
+          <p className="text-2xl font-bold text-warm-gray-900">{pendingReferrals}</p>
+          <p className="text-xs text-warm-gray-500 mt-1">Pending Referrals</p>
         </Link>
       )}
       {pendingOrders > 0 && (
         <Link
-          href="/dashboard/orders?status=PENDING"
-          className="rounded-xl border border-gray-200 bg-white p-4 transition-all hover:border-purple-300 hover:shadow-sm"
+          href="/dashboard/orders?status=NEW"
+          className="rounded-xl border border-cream-200 bg-white p-4 transition-all hover:border-purple-300 hover:shadow-sm"
         >
-          <p className="text-2xl font-bold text-gray-900">{pendingOrders}</p>
-          <p className="text-xs text-gray-500 mt-1">Pending Orders</p>
+          <p className="text-2xl font-bold text-warm-gray-900">{pendingOrders}</p>
+          <p className="text-xs text-warm-gray-500 mt-1">Pending Orders</p>
         </Link>
       )}
     </div>

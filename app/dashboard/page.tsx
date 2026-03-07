@@ -8,6 +8,7 @@ import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { ActivityFeed } from './components/activity-feed'
 import { DashboardStats } from './components/dashboard-stats'
+import { QuickStats } from './components/quick-stats'
 
 type ActionTone = 'teal' | 'sage' | 'coral' | 'stone'
 
@@ -58,7 +59,7 @@ export default function DashboardPage() {
       {
         title: 'Submit Referral',
         description: 'Start a new interim placement request',
-        href: '/referrals/submit',
+        href: '/interim-referral-form',
         tone: 'teal',
         meta: 'Referral intake',
         icon: (
@@ -70,7 +71,7 @@ export default function DashboardPage() {
       {
         title: 'My Referrals',
         description: 'Track progress and follow-up tasks',
-        href: '/dashboard/referrals/my-referrals',
+        href: '/dashboard/my-referrals',
         tone: 'sage',
         meta: 'Status tracking',
         icon: (
@@ -220,10 +221,7 @@ export default function DashboardPage() {
                 <CardDescription>At-a-glance overview of your workload.</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="flex items-center gap-3 rounded-xl border border-cream-200/70 bg-white/60 px-4 py-3 text-sm text-warm-gray-700">
-                  <span className="h-2 w-2 rounded-full bg-sage-600" />
-                  Enhanced metrics coming soon.
-                </div>
+                <QuickStats />
               </CardContent>
             </Card>
           </div>

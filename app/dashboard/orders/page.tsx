@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/auth/permissions'
+import { canAccessMyOrders } from '@/lib/auth/order-requestors'
 import OrderList from './components/order-list'
 
 export default async function OrdersPage() {
@@ -22,16 +23,19 @@ export default async function OrdersPage() {
 
   // Check if user has permission to view all orders
   if (!hasPermission(user.role, 'orders:view-all')) {
+    const fallbackHref = canAccessMyOrders(user) ? '/dashboard/my-orders' : '/dashboard'
+    const fallbackLabel = canAccessMyOrders(user) ? 'View My Orders' : 'Back to Dashboard'
+
     return (
       <div className="max-w-[1600px] mx-auto">
         <div className="bg-coral-100 border border-coral-200 rounded-xl p-6 text-center">
           <h2 className="text-xl font-semibold text-warm-gray-900 mb-2">Access Denied</h2>
           <p className="text-warm-gray-700">You do not have permission to view all orders.</p>
           <Link
-            href="/dashboard/my-orders"
+            href={fallbackHref}
             className="inline-block mt-4 px-4 py-2 bg-sage-600 text-white rounded hover:bg-sage-700 text-sm font-medium"
           >
-            View My Orders
+            {fallbackLabel}
           </Link>
         </div>
       </div>

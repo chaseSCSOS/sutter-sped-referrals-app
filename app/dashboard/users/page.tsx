@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth/hooks'
 import { hasPermission } from '@/lib/auth/permissions'
 import { useRouter } from 'next/navigation'
@@ -23,7 +23,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Badge } from '@/components/ui/badge'
 
 type User = {
   id: string
@@ -75,13 +74,7 @@ export default function UsersPage() {
     }
   }, [authLoading, currentUser, router])
 
-  useEffect(() => {
-    if (currentUser && hasPermission(currentUser.role, 'users:view')) {
-      fetchUsers()
-    }
-  }, [currentUser, filterRole, searchQuery])
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const params = new URLSearchParams()
       if (filterRole) params.append('role', filterRole)
@@ -97,7 +90,13 @@ export default function UsersPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [filterRole, searchQuery])
+
+  useEffect(() => {
+    if (currentUser && hasPermission(currentUser.role, 'users:view')) {
+      fetchUsers()
+    }
+  }, [currentUser, fetchUsers])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,7 +114,13 @@ export default function UsersPage() {
       const data = await response.json()
 
       if (response.ok) {
-        setSuccess(`User ${formData.name} created successfully!`)
+        if (data.inviteSent) {
+          setSuccess(`User ${formData.name} created and invitation email sent.`)
+        } else if (data.warning) {
+          setSuccess(`${data.warning} You can use "Resend Invite" from the user actions.`)
+        } else {
+          setSuccess(`User ${formData.name} created successfully.`)
+        }
         setShowAddModal(false)
         setFormData({
           email: '',
@@ -129,7 +134,7 @@ export default function UsersPage() {
       } else {
         setError(data.error || 'Failed to create user')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while creating the user')
     } finally {
       setSubmitting(false)
@@ -167,7 +172,7 @@ export default function UsersPage() {
       } else {
         setError(data.error || 'Failed to update user')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while updating the user')
     } finally {
       setSubmitting(false)
@@ -202,13 +207,32 @@ export default function UsersPage() {
         const data = await response.json()
         setError(data.error || 'Failed to update user status')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while updating user status')
     }
   }
 
+  const handleResendInvite = async (userId: string, userName: string) => {
+    if (!confirm(`Resend invitation email to ${userName}?`)) return
+
+    try {
+      const response = await fetch(`/api/users/${userId}/invite`, {
+        method: 'POST',
+      })
+
+      if (response.ok) {
+        setSuccess(`Invitation email sent to ${userName}`)
+      } else {
+        const data = await response.json()
+        setError(data.error || 'Failed to send invitation email')
+      }
+    } catch {
+      setError('An error occurred while sending invitation email')
+    }
+  }
+
   const handleResetPassword = async (userId: string, userName: string) => {
-    if (!confirm(`Send password reset email to ${userName}?`)) return
+    if (!confirm(`Send password reset link to ${userName}?`)) return
 
     try {
       const response = await fetch(`/api/users/${userId}/reset-password`, {
@@ -221,7 +245,7 @@ export default function UsersPage() {
         const data = await response.json()
         setError(data.error || 'Failed to send password reset email')
       }
-    } catch (err) {
+    } catch {
       setError('An error occurred while resetting password')
     }
   }
@@ -258,7 +282,7 @@ export default function UsersPage() {
     <div className="mx-auto max-w-[1600px]">
       <div className="mb-6">
         <h1 className="text-3xl font-semibold text-warm-gray-900">User Management</h1>
-        <p className="text-warm-gray-600 mt-1">Manage system users and permissions</p>
+        <p className="text-warm-gray-600 mt-1">Create users, send onboarding emails, and manage account access.</p>
       </div>
 
       {error && (
@@ -278,16 +302,19 @@ export default function UsersPage() {
           <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
             <div>
               <CardTitle>Users</CardTitle>
-              <CardDescription>View and manage user accounts</CardDescription>
+              <CardDescription>Manage profiles, invitations, and password access links.</CardDescription>
             </div>
             {hasPermission(currentUser.role, 'users:create') && (
               <Button onClick={() => setShowAddModal(true)}>
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Add User
+                New User
               </Button>
             )}
+          </div>
+          <div className="mt-3 text-xs text-warm-gray-500">
+            Resend Invite sends a setup email for first-time access. Send Reset Link emails a password reset link.
           </div>
           <div className="flex flex-col sm:flex-row gap-3 mt-4">
             <Input
@@ -357,6 +384,13 @@ export default function UsersPage() {
                     <Button
                       variant="outline"
                       size="sm"
+                      onClick={() => handleResendInvite(user.id, user.name)}
+                    >
+                      Resend Invite
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={() => openEditModal(user)}
                     >
                       Edit
@@ -366,7 +400,7 @@ export default function UsersPage() {
                       size="sm"
                       onClick={() => handleResetPassword(user.id, user.name)}
                     >
-                      Reset Password
+                      Send Reset Link
                     </Button>
                     <Button
                       variant="outline"
@@ -391,10 +425,16 @@ export default function UsersPage() {
       <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>Create a new user account</DialogDescription>
+            <DialogTitle>Create User Account</DialogTitle>
+            <DialogDescription>
+              Add the user details below. Saving will automatically send a setup email.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="rounded-lg border border-sky-200 bg-sky-50 p-3 text-sm text-sky-900">
+              <p className="font-medium">What happens next</p>
+              <p className="mt-1">1) Account is created 2) Invitation email is sent 3) User sets password and signs in at /auth/login.</p>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name *</Label>
@@ -471,7 +511,7 @@ export default function UsersPage() {
                 Cancel
               </Button>
               <Button type="submit" disabled={submitting}>
-                {submitting ? 'Creating...' : 'Create User'}
+                {submitting ? 'Creating...' : 'Create User & Send Invite'}
               </Button>
             </DialogFooter>
           </form>

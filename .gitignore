@@ -45,3 +45,5 @@ next-env.d.ts
 
 # Sensitive credentials
 docs/db.txt
+
+node_modules

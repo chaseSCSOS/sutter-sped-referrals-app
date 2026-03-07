@@ -1,13 +1,47 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { interimReferralSchema, type InterimReferralFormData } from './schema';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
+import { toast } from 'sonner';
+
+const US_STATES = [
+  { value: 'AL', label: 'Alabama' }, { value: 'AK', label: 'Alaska' }, { value: 'AZ', label: 'Arizona' },
+  { value: 'AR', label: 'Arkansas' }, { value: 'CA', label: 'California' }, { value: 'CO', label: 'Colorado' },
+  { value: 'CT', label: 'Connecticut' }, { value: 'DE', label: 'Delaware' }, { value: 'DC', label: 'District of Columbia' },
+  { value: 'FL', label: 'Florida' }, { value: 'GA', label: 'Georgia' }, { value: 'HI', label: 'Hawaii' },
+  { value: 'ID', label: 'Idaho' }, { value: 'IL', label: 'Illinois' }, { value: 'IN', label: 'Indiana' },
+  { value: 'IA', label: 'Iowa' }, { value: 'KS', label: 'Kansas' }, { value: 'KY', label: 'Kentucky' },
+  { value: 'LA', label: 'Louisiana' }, { value: 'ME', label: 'Maine' }, { value: 'MD', label: 'Maryland' },
+  { value: 'MA', label: 'Massachusetts' }, { value: 'MI', label: 'Michigan' }, { value: 'MN', label: 'Minnesota' },
+  { value: 'MS', label: 'Mississippi' }, { value: 'MO', label: 'Missouri' }, { value: 'MT', label: 'Montana' },
+  { value: 'NE', label: 'Nebraska' }, { value: 'NV', label: 'Nevada' }, { value: 'NH', label: 'New Hampshire' },
+  { value: 'NJ', label: 'New Jersey' }, { value: 'NM', label: 'New Mexico' }, { value: 'NY', label: 'New York' },
+  { value: 'NC', label: 'North Carolina' }, { value: 'ND', label: 'North Dakota' }, { value: 'OH', label: 'Ohio' },
+  { value: 'OK', label: 'Oklahoma' }, { value: 'OR', label: 'Oregon' }, { value: 'PA', label: 'Pennsylvania' },
+  { value: 'RI', label: 'Rhode Island' }, { value: 'SC', label: 'South Carolina' }, { value: 'SD', label: 'South Dakota' },
+  { value: 'TN', label: 'Tennessee' }, { value: 'TX', label: 'Texas' }, { value: 'UT', label: 'Utah' },
+  { value: 'VT', label: 'Vermont' }, { value: 'VA', label: 'Virginia' }, { value: 'WA', label: 'Washington' },
+  { value: 'WV', label: 'West Virginia' }, { value: 'WI', label: 'Wisconsin' }, { value: 'WY', label: 'Wyoming' },
+] as const;
+
+const PRESCHOOL_GRADES = new Set(['PreK', 'Preschool']);
+const HIGH_SCHOOL_GRADES = new Set(['9', '10', '11', '12']);
+
+function isPreschoolGrade(selectedGrade?: string) {
+  return Boolean(selectedGrade) && PRESCHOOL_GRADES.has(selectedGrade);
+}
+
+function isHighSchoolGrade(selectedGrade?: string) {
+  return Boolean(selectedGrade) && HIGH_SCHOOL_GRADES.has(selectedGrade);
+}
 
 export default function InterimReferralForm() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({});
 
@@ -25,6 +59,7 @@ export default function InterimReferralForm() {
       specialEdServices: [
         {
           service: '',
+          serviceType: 'Individual',
           frequency: '',
           duration: '',
           location: '',
@@ -45,9 +80,11 @@ export default function InterimReferralForm() {
   const isEL = watch('englishLearner');
   const isRedesignated = watch('redesignated');
   const grade = watch('grade');
-  const nonSeisIep = watch('nonSeisIep');
   const disabilities = watch('disabilities') || {};
   const dateOfBirth = watch('dateOfBirth');
+  const showHomeLanguageSurvey = !isPreschoolGrade(grade);
+  const requireHomeLanguageSurvey = Boolean(grade) && showHomeLanguageSurvey;
+  const showTranscripts = isHighSchoolGrade(grade);
 
   // Auto-calculate age from date of birth
   useEffect(() => {
@@ -65,6 +102,25 @@ export default function InterimReferralForm() {
       setValue('age', age);
     }
   }, [dateOfBirth, setValue]);
+
+  // Remove uploads that no longer apply when grade changes.
+  useEffect(() => {
+    setUploadedFiles((prev) => {
+      let nextState: Record<string, File[]> | null = null;
+
+      if (!showHomeLanguageSurvey && prev.homeLanguageSurvey) {
+        nextState = { ...(nextState ?? prev) };
+        delete nextState.homeLanguageSurvey;
+      }
+
+      if (!showTranscripts && prev.transcripts) {
+        nextState = { ...(nextState ?? prev) };
+        delete nextState.transcripts;
+      }
+
+      return nextState ?? prev;
+    });
+  }, [showHomeLanguageSurvey, showTranscripts]);
 
   const onSubmit = async (data: InterimReferralFormData) => {
     setIsSubmitting(true);
@@ -88,11 +144,9 @@ export default function InterimReferralForm() {
       if (!response.ok) throw new Error('Submission failed');
 
       const result = await response.json();
-      alert(`Referral submitted successfully! Confirmation #: ${result.confirmationNumber}`);
-      // Redirect to confirmation page
-      window.location.href = `/referrals/${result.id}/confirmation`;
+      router.push(`/referrals/${result.id}/confirmation`);
     } catch (error) {
-      alert('Error submitting referral. Please try again.');
+      toast.error('Error submitting referral. Please try again.');
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -198,7 +252,7 @@ export default function InterimReferralForm() {
                   className={fieldClass}
                 >
                   <option value="">Select Grade</option>
-                  <option value="PreK">PreK</option>
+                  <option value="PreK">Preschool</option>
                   <option value="TK">TK</option>
                   <option value="K">K</option>
                   {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((g) => (
@@ -371,10 +425,9 @@ export default function InterimReferralForm() {
                   className={fieldClass}
                 >
                   <option value="">Select State</option>
-                  <option value="CA">California</option>
-                  <option value="OR">Oregon</option>
-                  <option value="NV">Nevada</option>
-                  {/* Add all other states as needed */}
+                  {US_STATES.map((s) => (
+                    <option key={s.value} value={s.value}>{s.label}</option>
+                  ))}
                 </select>
                 {errors.state && (
                   <p className="text-red-500 text-sm mt-1">{errors.state.message}</p>
@@ -536,10 +589,27 @@ export default function InterimReferralForm() {
               </div>
             )}
 
+            {/* Conditional: When they became an English learner */}
             {isEL === 'Yes' && (
               <div>
                 <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                  Redesignated <span className="text-red-500">*</span>
+                  When they became an English learner <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  {...register('elBecameDate')}
+                  className={fieldClass}
+                />
+                {errors.elBecameDate && (
+                  <p className="text-red-500 text-sm mt-1">{errors.elBecameDate.message}</p>
+                )}
+              </div>
+            )}
+
+            {isEL === 'Yes' && (
+              <div>
+                <label className="block text-sm font-medium text-warm-gray-700 mb-1">
+                  Reclassified? <span className="text-red-500">*</span>
                 </label>
                 <div className="flex gap-4 mt-2">
                   <label className="flex items-center">
@@ -650,7 +720,7 @@ export default function InterimReferralForm() {
                     {...register('placementType')}
                     className="mr-2 h-4 w-4 accent-sky-600"
                   />
-                  FRA placement (Functionally Related Academic)
+                  DHH Interim
                 </label>
                 <label className="flex items-center">
                   <input
@@ -697,21 +767,7 @@ export default function InterimReferralForm() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <label className="block text-sm font-medium text-warm-gray-700 mb-2">
-              Silo (Organizational Grouping)
-            </label>
-            <input
-              type="text"
-              {...register('silo')}
-              className={fieldClass}
-              placeholder="Optional: Enter silo/organizational grouping"
-            />
-            {errors.silo && (
-              <p className="text-red-500 text-sm mt-1">{errors.silo.message}</p>
-            )}
-          </div>
-        </section>
+          </section>
 
         {/* Section 6: Disability Information */}
         <section className="border-b border-cream-200/70 pb-6">
@@ -756,6 +812,7 @@ export default function InterimReferralForm() {
                   <option value="">N/A</option>
                   <option value="P">Primary</option>
                   <option value="S">Secondary</option>
+                  <option value="T">Tertiary</option>
                 </select>
                 <span className="text-sm text-warm-gray-600">
                   {disability.name}
@@ -774,7 +831,7 @@ export default function InterimReferralForm() {
           <h2 className="text-2xl font-semibold mb-4 text-warm-gray-900">
             Special Education Dates
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-warm-gray-700 mb-1">
                 SPED Entry Date <span className="text-red-500">*</span>
@@ -786,22 +843,6 @@ export default function InterimReferralForm() {
               />
               {errors.spedEntryDate && (
                 <p className="text-red-500 text-sm mt-1">{errors.spedEntryDate.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                Interim Placement to be Reviewed <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="date"
-                {...register('interimPlacementReviewDate')}
-                className={fieldClass}
-              />
-              {errors.interimPlacementReviewDate && (
-                <p className="text-red-500 text-sm mt-1">
-                  {errors.interimPlacementReviewDate.message}
-                </p>
               )}
             </div>
 
@@ -884,8 +925,9 @@ export default function InterimReferralForm() {
                 className={fieldClass}
               >
                 <option value="">Select State</option>
-                <option value="CA">California</option>
-                {/* Add other states */}
+                {US_STATES.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
               </select>
               {errors.lastPlacementState && (
                 <p className="text-red-500 text-sm mt-1">
@@ -952,14 +994,51 @@ export default function InterimReferralForm() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="md:col-span-2">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-3">
                   <label className="block text-sm font-medium text-warm-gray-700 mb-1">
                     Special Education Service <span className="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
                     {...register(`specialEdServices.${index}.service`)}
+                    className={fieldClass}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
+                    Service Type <span className="text-red-500">*</span>
+                  </label>
+                  <div className="flex gap-4 mt-2">
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="Individual"
+                        {...register(`specialEdServices.${index}.serviceType`)}
+                        className="mr-2 h-4 w-4 accent-sky-600"
+                      />
+                      Individual
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="radio"
+                        value="Group"
+                        {...register(`specialEdServices.${index}.serviceType`)}
+                        className="mr-2 h-4 w-4 accent-sky-600"
+                      />
+                      Group
+                    </label>
+                  </div>
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
+                    Service Provider <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register(`specialEdServices.${index}.serviceProvider`)}
                     className={fieldClass}
                   />
                 </div>
@@ -983,6 +1062,7 @@ export default function InterimReferralForm() {
                     type="text"
                     {...register(`specialEdServices.${index}.duration`)}
                     className={fieldClass}
+                    placeholder="days"
                   />
                 </div>
 
@@ -1018,17 +1098,6 @@ export default function InterimReferralForm() {
                     className={fieldClass}
                   />
                 </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                    Service Provider <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    {...register(`specialEdServices.${index}.serviceProvider`)}
-                    className={fieldClass}
-                  />
-                </div>
               </div>
             </div>
           ))}
@@ -1039,6 +1108,7 @@ export default function InterimReferralForm() {
             onClick={() =>
               append({
                 service: '',
+                serviceType: 'Individual',
                 frequency: '',
                 duration: '',
                 location: '',
@@ -1079,7 +1149,7 @@ export default function InterimReferralForm() {
             District Authorization
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="md:col-span-2">
+            <div>
               <label className="block text-sm font-medium text-warm-gray-700 mb-1">
                 Name of LEA Representative Making Interim Placement{' '}
                 <span className="text-red-500">*</span>
@@ -1147,7 +1217,7 @@ export default function InterimReferralForm() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             <div>
               <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                Current IEP Date <span className="text-red-500">*</span>
+                Current IEP Date
               </label>
               <input
                 type="date"
@@ -1161,7 +1231,7 @@ export default function InterimReferralForm() {
 
             <div>
               <label className="block text-sm font-medium text-warm-gray-700 mb-1">
-                Current Psychoeducational Report Date <span className="text-red-500">*</span>
+                Current Psychoeducational Report Date
               </label>
               <input
                 type="date"
@@ -1186,7 +1256,8 @@ export default function InterimReferralForm() {
               {
                 key: 'homeLanguageSurvey',
                 label: 'Home Language Survey TK+ (not applicable for Preschool)',
-                required: grade !== 'PreK',
+                required: requireHomeLanguageSurvey,
+                visible: showHomeLanguageSurvey,
               },
               {
                 key: 'immunizationRecord',
@@ -1205,42 +1276,40 @@ export default function InterimReferralForm() {
                 required: true,
               },
               {
-                key: 'interimPlacementForm',
-                label: 'Interim Placement Form (for non-SEIS IEPs)',
-                required: nonSeisIep === 'Yes',
-              },
-              {
                 key: 'transcripts',
                 label: 'Transcripts (9th grade and above)',
-                required: ['9', '10', '11', '12'].includes(grade || ''),
+                required: showTranscripts,
+                visible: showTranscripts,
               },
-            ].map((doc) => (
-              <div
-                key={doc.key}
-                className="p-4 border border-cream-200/70 rounded-xl hover:border-sky-300/80 transition-colors"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <label className="text-sm font-medium text-warm-gray-700">
-                    {doc.label}
-                    {doc.required && <span className="text-red-500 ml-1">*</span>}
-                  </label>
-                  {uploadedFiles[doc.key]?.length > 0 && (
-                    <span className="text-sage-600 text-sm flex items-center">
-                      <svg
-                        className="w-4 h-4 mr-1"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                      Uploaded ({uploadedFiles[doc.key].length} file
-                      {uploadedFiles[doc.key].length > 1 ? 's' : ''})
-                    </span>
-                  )}
+            ]
+              .filter((doc) => doc.visible ?? true)
+              .map((doc) => (
+                <div
+                  key={doc.key}
+                  className="p-4 border border-cream-200/70 rounded-xl hover:border-sky-300/80 transition-colors"
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <label className="text-sm font-medium text-warm-gray-700">
+                      {doc.label}
+                      {doc.required && <span className="text-red-500 ml-1">*</span>}
+                    </label>
+                    {uploadedFiles[doc.key]?.length > 0 && (
+                      <span className="text-sage-600 text-sm flex items-center">
+                        <svg
+                          className="w-4 h-4 mr-1"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Uploaded ({uploadedFiles[doc.key].length} file
+                        {uploadedFiles[doc.key].length > 1 ? 's' : ''})
+                      </span>
+                    )}
                 </div>
                 <input
                   type="file"
@@ -1289,7 +1358,7 @@ export default function InterimReferralForm() {
             size="lg"
             onClick={() => {
               // Save draft logic here
-              alert('Draft saved!');
+              toast.success('Draft saved!');
             }}
           >
             Save Draft

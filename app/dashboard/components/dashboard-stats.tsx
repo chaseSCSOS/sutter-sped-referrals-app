@@ -69,7 +69,7 @@ export function DashboardStats() {
       )}
       {stats.pendingOrders > 0 && (
         <Link
-          href="/dashboard/orders?status=PENDING"
+          href="/dashboard/orders?status=NEW"
           className="flex items-center justify-between gap-3 rounded-xl border border-purple-200/70 bg-purple-50/60 px-4 py-3 text-sm hover:bg-purple-50 hover:border-purple-300 transition-colors group"
         >
           <div className="flex items-center gap-3">

@@ -6,9 +6,9 @@ interface OrderStatusBadgeProps {
 }
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; color: string }> = {
-  NEW: { label: 'New', color: 'bg-sky-100 text-sky-700 border-sky-200' },
-  SHIPPED: { label: 'Shipped', color: 'bg-sage-100 text-sage-700 border-sage-200' },
-  RECEIVED: { label: 'Received', color: 'bg-sage-200 text-sage-700 border-sage-400' },
+  NEW: { label: 'Submitted', color: 'bg-sky-100 text-sky-700 border-sky-200' },
+  SHIPPED: { label: 'Placed', color: 'bg-amber-100 text-amber-700 border-amber-200' },
+  RECEIVED: { label: 'Ready for Pickup', color: 'bg-sage-200 text-sage-800 border-sage-400' },
   COMPLETED: { label: 'Completed', color: 'bg-green-100 text-green-700 border-green-200' },
   CANCELLED: { label: 'Cancelled', color: 'bg-warm-gray-400/20 text-warm-gray-700 border-warm-gray-400' },
 }

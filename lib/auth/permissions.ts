@@ -3,7 +3,7 @@ import type { UserRole } from '@prisma/client'
 export const PERMISSIONS = {
   // Referral permissions
   'referrals:submit': ['EXTERNAL_ORG', 'SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
-  'referrals:view-own': ['EXTERNAL_ORG', 'TEACHER', 'SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'referrals:view-own': ['EXTERNAL_ORG'],
   'referrals:view-all': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
   'referrals:update': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
   'referrals:delete': ['ADMIN', 'SUPER_ADMIN'],

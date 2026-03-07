@@ -11,17 +11,17 @@ interface UpdateStatusModalProps {
 }
 
 const STATUS_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  NEW: ['SHIPPED', 'CANCELLED'],
-  SHIPPED: ['RECEIVED', 'CANCELLED'],
-  RECEIVED: ['COMPLETED', 'CANCELLED'],
-  COMPLETED: [],
-  CANCELLED: [],
+  NEW: ['SHIPPED', 'CANCELLED'],           // Submitted → Placed, Cancelled
+  SHIPPED: ['RECEIVED', 'CANCELLED'],       // Placed → Ready for Pickup, Cancelled  
+  RECEIVED: ['COMPLETED', 'CANCELLED'],     // Ready for Pickup → Completed, Cancelled
+  COMPLETED: [],                            // Completed (no further transitions)
+  CANCELLED: [],                            // Cancelled (no further transitions)
 }
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
-  NEW: 'New',
-  SHIPPED: 'Shipped',
-  RECEIVED: 'Received',
+  NEW: 'Submitted',
+  SHIPPED: 'Placed',
+  RECEIVED: 'Ready for Pickup',
   COMPLETED: 'Completed',
   CANCELLED: 'Cancelled',
 }
@@ -34,8 +34,6 @@ export default function UpdateStatusModal({
 }: UpdateStatusModalProps) {
   const [status, setStatus] = useState<OrderStatus | ''>('')
   const [notes, setNotes] = useState('')
-  const [trackingNumber, setTrackingNumber] = useState('')
-  const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
 
@@ -53,14 +51,10 @@ export default function UpdateStatusModal({
     setSubmitting(true)
 
     try {
-      const body: any = { status, notes }
-      if (trackingNumber) body.trackingNumber = trackingNumber
-      if (purchaseOrderNumber) body.purchaseOrderNumber = purchaseOrderNumber
-
       const response = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ status, notes }),
       })
 
       if (response.ok) {
@@ -77,81 +71,86 @@ export default function UpdateStatusModal({
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-        <h2 className="text-xl font-bold text-gray-900 mb-4">Update Order Status</h2>
+    <div
+      className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-[9999]"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-semibold text-warm-gray-900">Update Order Status</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-warm-gray-400 hover:text-warm-gray-700 hover:bg-warm-gray-100 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <p className="text-sm text-warm-gray-500 mb-4">
+          Current: <span className="font-medium text-warm-gray-700">{STATUS_LABELS[currentStatus]}</span>
+        </p>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm mb-4">
+          <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4 border border-red-100">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
-              New Status *
+            <label htmlFor="status" className="block text-sm font-medium text-warm-gray-700 mb-1.5">
+              New Status <span className="text-red-500">*</span>
             </label>
             <select
               id="status"
               value={status}
               onChange={(e) => setStatus(e.target.value as OrderStatus)}
               required
-              className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
+              className="w-full rounded-lg border border-cream-200/80 bg-white px-3 py-2.5 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
             >
-              <option value="">Select status...</option>
-              {availableStatuses.map((s) => (
+              <option value="">Select new status…</option>
+              {Object.keys(STATUS_LABELS).map((s) => (
                 <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
+                  {STATUS_LABELS[s as OrderStatus]}
                 </option>
               ))}
             </select>
           </div>
 
-          {status === 'SHIPPED' && (
-            <div>
-              <label htmlFor="trackingNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Tracking Number
-              </label>
-              <input
-                id="trackingNumber"
-                type="text"
-                value={trackingNumber}
-                onChange={(e) => setTrackingNumber(e.target.value)}
-                className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
-                placeholder="e.g., 1Z999AA10123456784"
-              />
-            </div>
-          )}
-
           <div>
-            <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-              Notes (Optional)
+            <label htmlFor="notes" className="block text-sm font-medium text-warm-gray-700 mb-1.5">
+              Notes <span className="text-warm-gray-400">(optional)</span>
             </label>
             <textarea
               id="notes"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
-              placeholder="Add any notes about this status change..."
+              className="w-full rounded-lg border border-cream-200/80 bg-white px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none resize-none"
+              placeholder="Add any notes about this status change…"
             />
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="flex gap-3 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 font-medium transition-colors"
+              className="flex-1 px-4 py-2.5 bg-warm-gray-100 text-warm-gray-700 rounded-lg hover:bg-warm-gray-200 font-medium transition-colors text-sm"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={submitting}
-              className="flex-1 px-4 py-2 bg-sky-600 text-white rounded-xl hover:bg-sky-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium transition-colors"
+              disabled={submitting || !status}
+              className="flex-1 px-4 py-2.5 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:bg-warm-gray-300 disabled:cursor-not-allowed font-medium transition-colors text-sm"
             >
-              {submitting ? 'Updating...' : 'Update Status'}
+              {submitting ? 'Updating…' : 'Update Status'}
             </button>
           </div>
         </form>
