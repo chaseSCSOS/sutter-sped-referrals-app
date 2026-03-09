@@ -1,18 +1,62 @@
 'use client'
 
 import { useState, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import StatusBadge from '@/app/dashboard/referrals/components/status-badge'
 
 function StatusLookupContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const initialConfirmation = searchParams.get('confirmation') || ''
 
+  const [mode, setMode] = useState<'status' | 'resume'>('status')
+
+  // Status lookup state
   const [confirmationNumber, setConfirmationNumber] = useState(initialConfirmation)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [referral, setReferral] = useState<any>(null)
+
+  // Resume draft state
+  const [draftEmail, setDraftEmail] = useState('')
+  const [draftNumber, setDraftNumber] = useState('')
+  const [resumeLoading, setResumeLoading] = useState(false)
+  const [resumeError, setResumeError] = useState('')
+
+  async function handleResumeDraft(e: React.FormEvent) {
+    e.preventDefault()
+    setResumeError('')
+    setResumeLoading(true)
+
+    try {
+      const response = await fetch(
+        `/api/referrals/draft?email=${encodeURIComponent(draftEmail)}&draftNumber=${encodeURIComponent(draftNumber)}`
+      )
+      const data = await response.json()
+
+      if (!response.ok) {
+        setResumeError(data.error || 'Draft not found. Please check your details and try again.')
+        return
+      }
+
+      // Store in sessionStorage and redirect to the correct form
+      sessionStorage.setItem(
+        'pendingDraft',
+        JSON.stringify({
+          formType: data.formType,
+          formData: data.formData,
+          draftNumber: data.draftNumber,
+          email: draftEmail,
+        })
+      )
+      router.push(data.formUrl)
+    } catch {
+      setResumeError('Failed to load draft. Please try again.')
+    } finally {
+      setResumeLoading(false)
+    }
+  }
 
   async function handleLookup(e: React.FormEvent) {
     e.preventDefault()
@@ -54,13 +98,40 @@ function StatusLookupContent() {
               />
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Check Referral Status</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Referral Lookup</h1>
           <p className="text-gray-600">
-            Enter your confirmation number to view your referral status
+            Check your referral status or resume a saved draft
           </p>
         </div>
 
-        {/* Lookup form */}
+        {/* Mode tabs */}
+        <div className="flex rounded-xl bg-white shadow-md overflow-hidden mb-6">
+          <button
+            type="button"
+            onClick={() => { setMode('status'); setError(''); setReferral(null); }}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              mode === 'status'
+                ? 'bg-sky-600 text-white'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Check Referral Status
+          </button>
+          <button
+            type="button"
+            onClick={() => { setMode('resume'); setResumeError(''); }}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${
+              mode === 'resume'
+                ? 'bg-sky-600 text-white'
+                : 'text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            Resume a Draft
+          </button>
+        </div>
+
+        {mode === 'status' ? (
+        /* Status lookup form */
         <div className="bg-white rounded-xl shadow-xl p-8 mb-6">
           <form onSubmit={handleLookup} className="space-y-4">
             <div>
@@ -96,9 +167,72 @@ function StatusLookupContent() {
             </button>
           </form>
         </div>
+        ) : (
+        /* Resume draft form */
+        <div className="bg-white rounded-xl shadow-xl p-8 mb-6">
+          <div className="flex items-center gap-3 mb-5">
+            <div className="w-10 h-10 bg-sky-100 rounded-xl flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900">Resume a Saved Draft</p>
+              <p className="text-sm text-gray-500">Enter the email and draft number from your saved draft email</p>
+            </div>
+          </div>
+          <form onSubmit={handleResumeDraft} className="space-y-4">
+            <div>
+              <label htmlFor="draft-email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <input
+                id="draft-email"
+                type="email"
+                required
+                value={draftEmail}
+                onChange={(e) => setDraftEmail(e.target.value)}
+                placeholder="you@district.edu"
+                className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-3 text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
+              />
+            </div>
+            <div>
+              <label htmlFor="draft-number" className="block text-sm font-medium text-gray-700 mb-2">
+                Draft Number
+              </label>
+              <input
+                id="draft-number"
+                type="text"
+                required
+                value={draftNumber}
+                onChange={(e) => setDraftNumber(e.target.value)}
+                placeholder="DFT-20260309-ABCD"
+                className="w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-3 text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Found in the draft confirmation email we sent you
+              </p>
+            </div>
+
+            {resumeError && (
+              <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm">
+                {resumeError}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={resumeLoading || !draftEmail || !draftNumber}
+              className="w-full bg-sky-600 text-white py-3 rounded-xl font-medium hover:bg-sky-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+            >
+              {resumeLoading ? 'Loading draft...' : 'Resume Draft'}
+            </button>
+          </form>
+        </div>
+        )}
 
         {/* Results */}
-        {referral && (
+        {mode === 'status' && referral && (
           <div className="bg-white rounded-xl shadow-xl p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-bold text-gray-900">Referral Status</h2>

@@ -261,7 +261,7 @@ export default function ReferralList({ initialReferrals = [], isStaff = false }:
           <p className="text-slate-500 text-sm mt-1">Try adjusting your search or filter criteria</p>
         </div>
       ) : viewMode === 'table' ? (
-        <ReferralTable referrals={referrals} preset={activePreset} showSyncColumns={showSyncColumns} isStaff={isStaff} />
+        <ReferralTable referrals={referrals} preset={activePreset} showSyncColumns={showSyncColumns} isStaff={isStaff} onRefresh={fetchReferrals} />
       ) : (
         <div className="space-y-4">
           {referrals.map(referral => (

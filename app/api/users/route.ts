@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/auth/permissions'
+import { USER_ROLE_VALUES } from '@/lib/auth/role-options'
 import { sendUserInvitationEmail } from '@/lib/email'
 import type { Prisma, UserRole } from '@prisma/client'
 import { z } from 'zod'
@@ -10,7 +11,8 @@ import { z } from 'zod'
 const createUserSchema = z.object({
   email: z.string().email(),
   name: z.string().min(1),
-  role: z.enum(['EXTERNAL_ORG', 'TEACHER', 'SPED_STAFF', 'ADMIN', 'SUPER_ADMIN']),
+  role: z.enum(USER_ROLE_VALUES),
+  roleOptionId: z.string().uuid().nullable().optional(),
   organization: z.string().optional(),
   phoneNumber: z.string().optional(),
   jobTitle: z.string().optional(),
@@ -43,6 +45,31 @@ export async function POST(request: NextRequest) {
     const validatedData = createUserSchema.parse(body)
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
     const redirectTo = `${appUrl}/auth/callback?next=/dashboard`
+
+    let selectedRoleOption: { id: string; name: string } | null = null
+    if (validatedData.roleOptionId) {
+      const roleOption = await prisma.userRoleOption.findUnique({
+        where: { id: validatedData.roleOptionId },
+        select: {
+          id: true,
+          name: true,
+          baseRole: true,
+        },
+      })
+
+      if (!roleOption) {
+        return NextResponse.json({ error: 'Selected role option was not found' }, { status: 400 })
+      }
+
+      if (roleOption.baseRole !== validatedData.role) {
+        return NextResponse.json(
+          { error: 'Selected role option does not match the assigned permission role' },
+          { status: 400 }
+        )
+      }
+
+      selectedRoleOption = { id: roleOption.id, name: roleOption.name }
+    }
 
     // Check if user already exists
     const existingUser = await prisma.user.findUnique({
@@ -81,6 +108,7 @@ export async function POST(request: NextRequest) {
         email: validatedData.email,
         name: validatedData.name,
         role: validatedData.role,
+        roleOptionId: selectedRoleOption?.id ?? null,
         organization: validatedData.organization || null,
         phoneNumber: validatedData.phoneNumber || null,
         jobTitle: validatedData.jobTitle || null,
@@ -109,6 +137,7 @@ export async function POST(request: NextRequest) {
           recipientName: validatedData.name,
           recipientEmail: validatedData.email,
           role: validatedData.role,
+          roleLabel: selectedRoleOption?.name,
           actionLink: linkData.properties.action_link,
           sentByName: user.name,
         })
@@ -129,6 +158,7 @@ export async function POST(request: NextRequest) {
           email: newUser.email,
           name: newUser.name,
           role: newUser.role,
+          roleOptionId: newUser.roleOptionId,
         },
       },
       { status: 201 }
@@ -180,6 +210,9 @@ export async function GET(request: NextRequest) {
     const where: Prisma.UserWhereInput = {}
 
     if (role) {
+      if (!USER_ROLE_VALUES.includes(role as UserRole)) {
+        return NextResponse.json({ error: 'Invalid role filter' }, { status: 400 })
+      }
       where.role = role as UserRole
     }
 
@@ -198,6 +231,13 @@ export async function GET(request: NextRequest) {
         email: true,
         name: true,
         role: true,
+        roleOption: {
+          select: {
+            id: true,
+            name: true,
+            baseRole: true,
+          },
+        },
         organization: true,
         phoneNumber: true,
         jobTitle: true,

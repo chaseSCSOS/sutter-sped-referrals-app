@@ -10,6 +10,7 @@ export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [supabaseUser, setSupabaseUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
+  const [userNotFound, setUserNotFound] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -33,6 +34,7 @@ export function useAuth() {
         fetchUserData(session.user.id)
       } else {
         setUser(null)
+        setUserNotFound(false)
         setLoading(false)
       }
     })
@@ -46,6 +48,9 @@ export function useAuth() {
       if (response.ok) {
         const userData = await response.json()
         setUser(userData)
+        setUserNotFound(false)
+      } else if (response.status === 404) {
+        setUserNotFound(true)
       }
     } catch (error) {
       console.error('Error fetching user data:', error)
@@ -66,6 +71,7 @@ export function useAuth() {
     supabaseUser,
     loading,
     signOut,
+    userNotFound,
     isAuthenticated: !!supabaseUser,
   }
 }

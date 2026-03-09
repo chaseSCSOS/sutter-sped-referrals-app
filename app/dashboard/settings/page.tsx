@@ -1,9 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import { SYSTEM_ROLE_LABELS, USER_ROLE_VALUES } from '@/lib/auth/role-options'
+import type { UserRole } from '@prisma/client'
 
-type Tab = 'email' | 'assessments'
+type Tab = 'email' | 'assessments' | 'userRoles'
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -93,12 +95,12 @@ export default function SettingsPage() {
       <div>
         <h1 className="text-2xl font-bold text-warm-gray-900">Settings</h1>
         <p className="text-sm text-warm-gray-500 mt-1">
-          Manage email notifications and assessment catalog.
+          Manage email notifications, assessment catalog, and user role options.
         </p>
       </div>
 
       {/* Tab Nav */}
-      <div className="flex gap-1 bg-cream-100 rounded-xl p-1 max-w-xs">
+      <div className="flex gap-1 bg-cream-100 rounded-xl p-1 max-w-md">
         <button
           onClick={() => setActiveTab('email')}
           className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
@@ -114,6 +116,14 @@ export default function SettingsPage() {
           }`}
         >
           Assessments
+        </button>
+        <button
+          onClick={() => setActiveTab('userRoles')}
+          className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+            activeTab === 'userRoles' ? 'bg-white shadow-sm text-warm-gray-900' : 'text-warm-gray-600 hover:text-warm-gray-900'
+          }`}
+        >
+          User Roles
         </button>
       </div>
 
@@ -212,8 +222,10 @@ export default function SettingsPage() {
             )}
           </div>
         </>
-      ) : (
+      ) : activeTab === 'assessments' ? (
         <AssessmentCatalogSettings />
+      ) : (
+        <UserRoleSettings />
       )}
     </div>
   )
@@ -298,6 +310,206 @@ function EmailRecipientCard({
             </svg>
             Add
           </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ==================== USER ROLE OPTIONS ====================
+
+interface ManagedUserRoleOption {
+  id: string
+  name: string
+  baseRole: UserRole
+  createdAt: string
+}
+
+function UserRoleSettings() {
+  const [customRoleOptions, setCustomRoleOptions] = useState<ManagedUserRoleOption[]>([])
+  const [newRoleName, setNewRoleName] = useState('')
+  const [newBaseRole, setNewBaseRole] = useState<UserRole>('TEACHER')
+  const [loadingRoleOptions, setLoadingRoleOptions] = useState(true)
+  const [savingRoleOption, setSavingRoleOption] = useState(false)
+  const [roleError, setRoleError] = useState('')
+  const [roleSuccess, setRoleSuccess] = useState('')
+
+  const loadRoleOptions = useCallback(async () => {
+    try {
+      const res = await fetch('/api/settings/user-roles')
+      if (!res.ok) {
+        const data = await res.json()
+        setRoleError(data.error || 'Failed to load role options')
+        return
+      }
+      const data = await res.json()
+      setCustomRoleOptions(data.customRoleOptions ?? [])
+    } catch {
+      setRoleError('Failed to load role options')
+    } finally {
+      setLoadingRoleOptions(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadRoleOptions()
+  }, [loadRoleOptions])
+
+  async function addRoleOption() {
+    const name = newRoleName.trim()
+    if (!name) return
+
+    setSavingRoleOption(true)
+    setRoleError('')
+    setRoleSuccess('')
+    try {
+      const res = await fetch('/api/settings/user-roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, baseRole: newBaseRole }),
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        setRoleError(data.error || 'Failed to create role option')
+        return
+      }
+
+      setNewRoleName('')
+      setNewBaseRole('TEACHER')
+      setRoleSuccess('Role option created')
+      loadRoleOptions()
+      setTimeout(() => setRoleSuccess(''), 3000)
+    } catch {
+      setRoleError('Failed to create role option')
+    } finally {
+      setSavingRoleOption(false)
+    }
+  }
+
+  async function deleteRoleOption(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? Users with this custom role will fall back to their base permission role label.`)) {
+      return
+    }
+
+    setRoleError('')
+    setRoleSuccess('')
+    try {
+      const res = await fetch(`/api/settings/user-roles/${id}`, {
+        method: 'DELETE',
+      })
+
+      if (!res.ok) {
+        const data = await res.json()
+        setRoleError(data.error || 'Failed to delete role option')
+        return
+      }
+
+      setRoleSuccess('Role option deleted')
+      loadRoleOptions()
+      setTimeout(() => setRoleSuccess(''), 3000)
+    } catch {
+      setRoleError('Failed to delete role option')
+    }
+  }
+
+  if (loadingRoleOptions) {
+    return (
+      <div className="flex items-center justify-center min-h-[200px]">
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-cream-200 border-t-sky-500" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="bg-white rounded-xl shadow-sm border border-cream-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-cream-200 bg-cream-50/70">
+          <h2 className="text-sm font-bold text-warm-gray-900">Built-in Permission Roles</h2>
+          <p className="text-xs text-warm-gray-500 mt-0.5">
+            These roles control permissions in the app and cannot be deleted.
+          </p>
+        </div>
+        <div className="p-5">
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(SYSTEM_ROLE_LABELS).map(([value, label]) => (
+              <span
+                key={value}
+                className="inline-flex items-center rounded-full bg-cream-100 border border-cream-200 px-3 py-1 text-xs font-medium text-warm-gray-700"
+              >
+                {label}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-cream-200 overflow-hidden">
+        <div className="px-5 py-4 border-b border-cream-200 bg-cream-50/70">
+          <h2 className="text-sm font-bold text-warm-gray-900">Custom User Role Labels</h2>
+          <p className="text-xs text-warm-gray-500 mt-0.5">
+            Add role labels for the Users page. Each custom role maps to one built-in permission role.
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
+          {customRoleOptions.length > 0 ? (
+            <div className="space-y-2">
+              {customRoleOptions.map((option) => (
+                <div
+                  key={option.id}
+                  className="flex items-center justify-between py-2 px-3 bg-cream-50 rounded-lg border border-cream-200"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-warm-gray-900 truncate">{option.name}</p>
+                    <p className="text-xs text-warm-gray-500 mt-0.5">
+                      Permission Role: {SYSTEM_ROLE_LABELS[option.baseRole]}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => deleteRoleOption(option.id, option.name)}
+                    className="text-xs text-red-500 hover:text-red-700 font-medium transition-colors ml-4"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-warm-gray-400 italic">No custom role labels configured yet.</p>
+          )}
+
+          <div className="pt-2 border-t border-cream-100">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <input
+                value={newRoleName}
+                onChange={(e) => setNewRoleName(e.target.value)}
+                placeholder="Role label (e.g., SLP)"
+                className="sm:col-span-2 rounded-lg border border-cream-200 bg-white px-3 py-2 text-sm text-warm-gray-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-200/70 focus:outline-none"
+              />
+              <select
+                value={newBaseRole}
+                onChange={(e) => setNewBaseRole(e.target.value as UserRole)}
+                className="rounded-lg border border-cream-200 bg-white px-3 py-2 text-sm text-warm-gray-800 focus:border-sky-400 focus:ring-2 focus:ring-sky-200/70 focus:outline-none"
+              >
+                {USER_ROLE_VALUES.map((role) => (
+                  <option key={role} value={role}>
+                    {SYSTEM_ROLE_LABELS[role]}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <button
+                onClick={addRoleOption}
+                disabled={!newRoleName.trim() || savingRoleOption}
+                className="px-4 py-2 bg-sky-600 text-white rounded-lg hover:bg-sky-700 disabled:opacity-40 font-medium transition-colors text-sm"
+              >
+                {savingRoleOption ? 'Adding...' : 'Add Role Label'}
+              </button>
+              {roleSuccess && <p className="text-sm text-emerald-700">{roleSuccess}</p>}
+              {roleError && <p className="text-sm text-red-600">{roleError}</p>}
+            </div>
+          </div>
         </div>
       </div>
     </div>

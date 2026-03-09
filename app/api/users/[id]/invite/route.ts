@@ -36,6 +36,18 @@ export async function POST(
 
     const targetUser = await prisma.user.findUnique({
       where: { id },
+      select: {
+        id: true,
+        supabaseUserId: true,
+        email: true,
+        name: true,
+        role: true,
+        roleOption: {
+          select: {
+            name: true,
+          },
+        },
+      },
     })
 
     if (!targetUser || !targetUser.supabaseUserId) {
@@ -63,6 +75,7 @@ export async function POST(
       recipientName: targetUser.name,
       recipientEmail: targetUser.email,
       role: targetUser.role,
+      roleLabel: targetUser.roleOption?.name,
       actionLink: data.properties.action_link,
       sentByName: user.name,
     })

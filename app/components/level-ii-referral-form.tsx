@@ -8,6 +8,7 @@ import { levelIIReferralSchema, type LevelIIReferralFormData } from './level-ii-
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import SaveDraftDialog from './save-draft-dialog';
 
 const PRESCHOOL_GRADES = new Set(['PreK', 'Preschool']);
 const HIGH_SCHOOL_GRADES = new Set(['9', '10', '11', '12']);
@@ -141,12 +142,18 @@ export default function LevelIIReferralForm() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [uploadedFiles, setUploadedFiles] = useState<Record<string, File[]>>({});
+  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  const [currentDraftNumber, setCurrentDraftNumber] = useState('');
+  const [draftEmail, setDraftEmail] = useState('');
+  const [draftBanner, setDraftBanner] = useState('');
 
   const {
     register,
     control,
     handleSubmit,
     watch,
+    getValues,
+    reset,
     formState: { errors },
   } = useForm<LevelIIReferralFormData>({
     resolver: zodResolver(levelIIReferralSchema),
@@ -168,6 +175,24 @@ export default function LevelIIReferralForm() {
   const audiogramApplicable = watch('audiogramApplicable');
   const showHomeLanguageSurvey = !isPreschoolGrade(grade);
   const showTranscripts = isHighSchoolGrade(grade);
+
+  // Load a pending draft from sessionStorage on mount
+  useEffect(() => {
+    try {
+      const raw = sessionStorage.getItem('pendingDraft');
+      if (!raw) return;
+      const pending = JSON.parse(raw);
+      if (pending.formType !== 'LEVEL_II') return;
+      sessionStorage.removeItem('pendingDraft');
+      reset(pending.formData);
+      setCurrentDraftNumber(pending.draftNumber);
+      setDraftEmail(pending.email);
+      setDraftBanner(`Draft ${pending.draftNumber} loaded. Note: uploaded documents are not saved — please re-attach them before submitting.`);
+    } catch {
+      // ignore malformed sessionStorage
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Clear uploads that no longer apply when grade changes
   useEffect(() => {
@@ -229,7 +254,33 @@ export default function LevelIIReferralForm() {
     'w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none';
 
   return (
+    <>
+    <SaveDraftDialog
+      isOpen={showDraftDialog}
+      onClose={() => setShowDraftDialog(false)}
+      formType="LEVEL_II"
+      getFormData={() => getValues()}
+      existingDraftNumber={currentDraftNumber || undefined}
+      existingEmail={draftEmail || undefined}
+      onDraftSaved={(draftNumber, email) => {
+        setCurrentDraftNumber(draftNumber);
+        setDraftEmail(email);
+      }}
+    />
     <div className="max-w-5xl mx-auto p-8 panel rounded-2xl">
+      {draftBanner && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 flex items-start gap-3">
+          <svg className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+          </svg>
+          <p className="text-sm text-amber-800">{draftBanner}</p>
+          <button type="button" onClick={() => setDraftBanner('')} className="ml-auto text-amber-500 hover:text-amber-700">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+      )}
       {/* Logo Header */}
       <div className="mb-6 text-center border-b border-cream-200/70 pb-6">
         <div className="inline-block mb-4">
@@ -574,7 +625,15 @@ export default function LevelIIReferralForm() {
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-4 pt-2">
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            type="button"
+            variant="secondary"
+            size="lg"
+            onClick={() => setShowDraftDialog(true)}
+          >
+            Save Draft
+          </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
@@ -586,5 +645,6 @@ export default function LevelIIReferralForm() {
         </div>
       </form>
     </div>
+    </>
   );
 }

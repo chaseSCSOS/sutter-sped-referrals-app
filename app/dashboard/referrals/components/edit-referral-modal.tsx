@@ -1,48 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-
-type Tab =
-  | 'student'
-  | 'contact'
-  | 'placement'
-  | 'language'
-  | 'disability'
-  | 'dates'
-  | 'lastPlacement'
-  | 'authorization'
-
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: 'student', label: 'Student', icon: '👤' },
-  { id: 'contact', label: 'Contact', icon: '📞' },
-  { id: 'placement', label: 'Placement', icon: '🏫' },
-  { id: 'language', label: 'Language', icon: '🌐' },
-  { id: 'disability', label: 'Disability', icon: '📋' },
-  { id: 'dates', label: 'SPED Dates', icon: '📅' },
-  { id: 'lastPlacement', label: 'Last Placement', icon: '🔄' },
-  { id: 'authorization', label: 'Authorization', icon: '✅' },
-]
 
 interface EditReferralModalProps {
   referral: any
@@ -53,26 +13,55 @@ interface EditReferralModalProps {
 function formatDateForInput(date: string | Date | null | undefined): string {
   if (!date) return ''
   const d = new Date(date)
+  if (isNaN(d.getTime())) return ''
   return d.toISOString().split('T')[0]
+}
+
+function SectionHeader({ label, icon }: { label: string; icon: string }) {
+  return (
+    <div className="flex items-center gap-2 mb-4 pb-2 border-b border-slate-100">
+      <span className="text-base">{icon}</span>
+      <h3 className="text-[11px] font-semibold text-slate-500 uppercase tracking-widest">{label}</h3>
+    </div>
+  )
+}
+
+function Field({ label, children, half }: { label: string; children: React.ReactNode; half?: boolean }) {
+  return (
+    <div className={half ? 'col-span-1' : 'col-span-2 sm:col-span-1'}>
+      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      {children}
+    </div>
+  )
+}
+
+function FieldWide({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="col-span-2">
+      <label className="block text-xs font-medium text-slate-600 mb-1">{label}</label>
+      {children}
+    </div>
+  )
 }
 
 export default function EditReferralModal({ referral, open, onClose }: EditReferralModalProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<Tab>('student')
   const [saving, setSaving] = useState(false)
 
-  // Form state — initialized from referral data
+  const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 focus:outline-none'
+  const selectCls = inputCls
+
   const [form, setForm] = useState({
-    // Student
     studentName: referral.studentName || '',
     dateOfBirth: formatDateForInput(referral.dateOfBirth),
-    age: referral.age || 0,
+    age: referral.age ?? '',
     grade: referral.grade || '',
     gender: referral.gender || '',
     fosterYouth: referral.fosterYouth ?? false,
     birthplace: referral.birthplace || '',
+    classroomTeacher: referral.classroomTeacher || '',
+    pipIndicator: referral.pipIndicator ?? false,
 
-    // Contact
     parentGuardianName: referral.parentGuardianName || '',
     homePhone: referral.homePhone || '',
     cellPhone: referral.cellPhone || '',
@@ -81,14 +70,15 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
     state: referral.state || '',
     zipCode: referral.zipCode || '',
 
-    // Placement
     placementType: referral.placementType || 'FRA',
     schoolOfAttendance: referral.schoolOfAttendance || '',
     schoolOfResidence: referral.schoolOfResidence || '',
     transportationSpecialEd: referral.transportationSpecialEd ?? false,
     silo: referral.silo || '',
+    programTrack: referral.programTrack || 'GENERAL',
+    districtOfResidence: referral.districtOfResidence || '',
+    dateStudentStartedSchool: formatDateForInput(referral.dateStudentStartedSchool),
 
-    // Language
     nativeLanguage: referral.nativeLanguage || '',
     englishLearner: referral.englishLearner ?? false,
     elStartDate: formatDateForInput(referral.elStartDate),
@@ -97,16 +87,23 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
     ethnicity: referral.ethnicity || '',
     residency: referral.residency || '',
 
-    // Disability
     primaryDisability: referral.primaryDisability || '',
+    percentageOutsideGenEd: referral.percentageOutsideGenEd ?? 0,
 
-    // Dates
     spedEntryDate: formatDateForInput(referral.spedEntryDate),
     triennialDue: formatDateForInput(referral.triennialDue),
     currentIepDate: formatDateForInput(referral.currentIepDate),
     currentPsychoReportDate: formatDateForInput(referral.currentPsychoReportDate),
+    deadlineDate: formatDateForInput(referral.deadlineDate),
 
-    // Last Placement
+    referringParty: referral.referringParty || '',
+    serviceProvider: referral.serviceProvider || '',
+    inSEIS: referral.inSEIS ?? false,
+    inSEISDate: formatDateForInput(referral.inSEISDate),
+    inAeries: referral.inAeries ?? false,
+    inAeriesDate: formatDateForInput(referral.inAeriesDate),
+    cumNotes: referral.cumNotes || '',
+
     lastPlacementSchool: referral.lastPlacementSchool || '',
     lastPlacementDistrict: referral.lastPlacementDistrict || '',
     lastPlacementCounty: referral.lastPlacementCounty || '',
@@ -114,49 +111,48 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
     lastPlacementPhone: referral.lastPlacementPhone || '',
     lastPlacementContactPerson: referral.lastPlacementContactPerson || '',
 
-    // Authorization
     leaRepresentativeName: referral.leaRepresentativeName || '',
     leaRepresentativePosition: referral.leaRepresentativePosition || '',
     nonSeisIep: referral.nonSeisIep ?? false,
     submittedByEmail: referral.submittedByEmail || '',
     additionalComments: referral.additionalComments || '',
-    percentageOutsideGenEd: referral.percentageOutsideGenEd ?? 0,
   })
 
-  function updateField(field: string, value: any) {
-    setForm((prev) => ({ ...prev, [field]: value }))
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    if (open) document.body.style.overflow = 'hidden'
+    else document.body.style.overflow = ''
+    return () => { document.body.style.overflow = '' }
+  }, [open])
+
+  function set(field: string, value: any) {
+    setForm(prev => ({ ...prev, [field]: value }))
   }
 
   async function handleSave() {
     setSaving(true)
     try {
       const payload: Record<string, any> = { ...form }
-
-      // Convert empty strings to null for nullable fields
-      const nullableFields = [
-        'homePhone', 'cellPhone', 'elStartDate', 'reclassificationDate',
-        'currentIepDate', 'currentPsychoReportDate', 'lastPlacementPhone',
-        'lastPlacementContactPerson', 'submittedByEmail', 'additionalComments', 'silo',
+      const nullableStr = [
+        'homePhone','cellPhone','elStartDate','reclassificationDate','currentIepDate',
+        'currentPsychoReportDate','lastPlacementPhone','lastPlacementContactPerson',
+        'submittedByEmail','additionalComments','silo','classroomTeacher','districtOfResidence',
+        'referringParty','serviceProvider','cumNotes','dateStudentStartedSchool',
+        'inSEISDate','inAeriesDate','birthplace','gender','ethnicity','residency',
       ]
-      for (const field of nullableFields) {
-        if (payload[field] === '') payload[field] = null
+      for (const f of nullableStr) {
+        if (payload[f] === '') payload[f] = null
       }
-
-      // Convert redesignated
-      if (payload.redesignated === '') payload.redesignated = null
-
       const res = await fetch(`/api/referrals/${referral.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       })
-
       if (!res.ok) {
         const data = await res.json()
         throw new Error(data.error || 'Failed to update referral')
       }
-
-      toast.success('Referral updated successfully')
+      toast.success('Referral updated')
       onClose()
       router.refresh()
     } catch (err: any) {
@@ -166,302 +162,347 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
     }
   }
 
-  const fieldClass =
-    'w-full rounded-xl border border-cream-200/80 bg-white/70 px-3 py-2 text-sm text-warm-gray-800 shadow-sm transition focus-visible:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-200/70 focus-visible:outline-none'
+  if (!open) return null
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <DialogTitle>Edit Referral</DialogTitle>
-          <DialogDescription>
-            Update information for {referral.studentName} &mdash; {referral.confirmationNumber}
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 z-40 bg-black/30 backdrop-blur-[2px] transition-opacity"
+        onClick={onClose}
+      />
 
-        {/* Tab navigation */}
-        <div className="flex gap-1 overflow-x-auto pb-1 border-b border-cream-200 -mx-6 px-6">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg whitespace-nowrap transition-colors ${
-                activeTab === tab.id
-                  ? 'bg-sky-50 text-sky-700 border-b-2 border-sky-600'
-                  : 'text-warm-gray-600 hover:text-warm-gray-900 hover:bg-cream-50'
-              }`}
-            >
-              <span className="text-sm">{tab.icon}</span>
-              {tab.label}
-            </button>
-          ))}
+      {/* Slide-over panel */}
+      <div className="fixed inset-y-0 right-0 z-50 flex flex-col w-full max-w-2xl bg-white shadow-2xl"
+           style={{ boxShadow: '-8px 0 40px rgba(0,0,0,0.12)' }}>
+
+        {/* Header */}
+        <div className="flex items-start justify-between px-6 py-4 border-b border-slate-100 bg-slate-50 shrink-0">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">{referral.studentName}</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Edit referral details &mdash; all sections are editable below
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg hover:bg-slate-200 transition-colors text-slate-500 hover:text-slate-800 ml-4 shrink-0"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
         </div>
 
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto py-4 -mx-6 px-6 min-h-[320px]">
-          {activeTab === 'student' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label>Student Name *</Label>
-                <Input value={form.studentName} onChange={(e) => updateField('studentName', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Date of Birth *</Label>
-                <input type="date" className={fieldClass} value={form.dateOfBirth} onChange={(e) => updateField('dateOfBirth', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Age</Label>
-                <Input type="number" value={form.age} onChange={(e) => updateField('age', parseInt(e.target.value) || 0)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Grade *</Label>
-                <Input value={form.grade} onChange={(e) => updateField('grade', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Gender *</Label>
-                <Input value={form.gender} onChange={(e) => updateField('gender', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Birthplace *</Label>
-                <Input value={form.birthplace} onChange={(e) => updateField('birthplace', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Foster Youth</Label>
-                <Select value={form.fosterYouth ? 'yes' : 'no'} onValueChange={(v) => updateField('fosterYouth', v === 'yes')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          )}
+        {/* Scrollable form body */}
+        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
 
-          {activeTab === 'contact' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label>Parent/Guardian Name *</Label>
-                <Input value={form.parentGuardianName} onChange={(e) => updateField('parentGuardianName', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Home Phone</Label>
-                <Input type="tel" value={form.homePhone} onChange={(e) => updateField('homePhone', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Cell Phone</Label>
-                <Input type="tel" value={form.cellPhone} onChange={(e) => updateField('cellPhone', e.target.value)} />
-              </div>
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label>Home Address *</Label>
-                <Input value={form.homeAddress} onChange={(e) => updateField('homeAddress', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>City *</Label>
-                <Input value={form.city} onChange={(e) => updateField('city', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>State *</Label>
-                <Input value={form.state} onChange={(e) => updateField('state', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Zip Code *</Label>
-                <Input value={form.zipCode} onChange={(e) => updateField('zipCode', e.target.value)} />
-              </div>
+          {/* Student Information */}
+          <section>
+            <SectionHeader label="Student Information" icon="👤" />
+            <div className="grid grid-cols-2 gap-3">
+              <FieldWide label="Student Name">
+                <input className={inputCls} value={form.studentName} onChange={e => set('studentName', e.target.value)} />
+              </FieldWide>
+              <Field label="Date of Birth">
+                <input type="date" className={inputCls} value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} />
+              </Field>
+              <Field label="Grade">
+                <input className={inputCls} value={form.grade} onChange={e => set('grade', e.target.value)} placeholder="e.g. K, 1, TK, PS" />
+              </Field>
+              <Field label="Gender">
+                <input className={inputCls} value={form.gender} onChange={e => set('gender', e.target.value)} />
+              </Field>
+              <Field label="Birthplace">
+                <input className={inputCls} value={form.birthplace} onChange={e => set('birthplace', e.target.value)} />
+              </Field>
+              <Field label="Foster Youth">
+                <select className={selectCls} value={form.fosterYouth ? 'yes' : 'no'} onChange={e => set('fosterYouth', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
+              <Field label="Classroom Teacher">
+                <input className={inputCls} value={form.classroomTeacher} onChange={e => set('classroomTeacher', e.target.value)} placeholder="e.g. A. Mays 4th" />
+              </Field>
+              <Field label="PIP">
+                <select className={selectCls} value={form.pipIndicator ? 'yes' : 'no'} onChange={e => set('pipIndicator', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
             </div>
-          )}
+          </section>
 
-          {activeTab === 'placement' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Placement Type *</Label>
-                <Select value={form.placementType} onValueChange={(v) => updateField('placementType', v)}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="FRA">FRA</SelectItem>
-                    <SelectItem value="SDC">SDC</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Silo</Label>
-                <Input value={form.silo} onChange={(e) => updateField('silo', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>School of Attendance *</Label>
-                <Input value={form.schoolOfAttendance} onChange={(e) => updateField('schoolOfAttendance', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>School of Residence *</Label>
-                <Input value={form.schoolOfResidence} onChange={(e) => updateField('schoolOfResidence', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Special Ed Transportation</Label>
-                <Select value={form.transportationSpecialEd ? 'yes' : 'no'} onValueChange={(v) => updateField('transportationSpecialEd', v === 'yes')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Contact Information */}
+          <section>
+            <SectionHeader label="Contact Information" icon="📞" />
+            <div className="grid grid-cols-2 gap-3">
+              <FieldWide label="Parent / Guardian Name">
+                <input className={inputCls} value={form.parentGuardianName} onChange={e => set('parentGuardianName', e.target.value)} />
+              </FieldWide>
+              <Field label="Home Phone">
+                <input type="tel" className={inputCls} value={form.homePhone} onChange={e => set('homePhone', e.target.value)} />
+              </Field>
+              <Field label="Cell Phone">
+                <input type="tel" className={inputCls} value={form.cellPhone} onChange={e => set('cellPhone', e.target.value)} />
+              </Field>
+              <FieldWide label="Home Address">
+                <input className={inputCls} value={form.homeAddress} onChange={e => set('homeAddress', e.target.value)} />
+              </FieldWide>
+              <Field label="City">
+                <input className={inputCls} value={form.city} onChange={e => set('city', e.target.value)} />
+              </Field>
+              <Field label="State">
+                <input className={inputCls} value={form.state} onChange={e => set('state', e.target.value)} />
+              </Field>
+              <Field label="Zip Code">
+                <input className={inputCls} value={form.zipCode} onChange={e => set('zipCode', e.target.value)} />
+              </Field>
             </div>
-          )}
+          </section>
 
-          {activeTab === 'language' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Native Language *</Label>
-                <Input value={form.nativeLanguage} onChange={(e) => updateField('nativeLanguage', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>English Learner</Label>
-                <Select value={form.englishLearner ? 'yes' : 'no'} onValueChange={(v) => updateField('englishLearner', v === 'yes')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Placement & Program */}
+          <section>
+            <SectionHeader label="Placement & Program" icon="🏫" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Placement Type">
+                <select className={selectCls} value={form.placementType} onChange={e => set('placementType', e.target.value)}>
+                  <option value="FRA">FRA</option>
+                  <option value="SDC">SDC</option>
+                </select>
+              </Field>
+              <Field label="Program Track">
+                <select className={selectCls} value={form.programTrack} onChange={e => set('programTrack', e.target.value)}>
+                  <option value="GENERAL">General</option>
+                  <option value="BEHAVIOR">BX (Behavior)</option>
+                  <option value="DHH">DHH</option>
+                  <option value="SCIP">SCIP</option>
+                  <option value="VIP">VIP</option>
+                </select>
+              </Field>
+              <Field label="Silo">
+                <select className={selectCls} value={form.silo} onChange={e => set('silo', e.target.value)}>
+                  <option value="">— None —</option>
+                  <option value="ASD">ASD</option>
+                  <option value="SD">SD</option>
+                  <option value="NC">NC</option>
+                  <option value="DHH">DHH</option>
+                  <option value="MD">MD</option>
+                  <option value="OT">OT</option>
+                </select>
+              </Field>
+              <Field label="District of Residence (DOR)">
+                <input className={inputCls} value={form.districtOfResidence} onChange={e => set('districtOfResidence', e.target.value)} />
+              </Field>
+              <Field label="School of Attendance">
+                <input className={inputCls} value={form.schoolOfAttendance} onChange={e => set('schoolOfAttendance', e.target.value)} />
+              </Field>
+              <Field label="School of Residence">
+                <input className={inputCls} value={form.schoolOfResidence} onChange={e => set('schoolOfResidence', e.target.value)} />
+              </Field>
+              <Field label="Date Student Started School">
+                <input type="date" className={inputCls} value={form.dateStudentStartedSchool} onChange={e => set('dateStudentStartedSchool', e.target.value)} />
+              </Field>
+              <Field label="Special Ed Transportation">
+                <select className={selectCls} value={form.transportationSpecialEd ? 'yes' : 'no'} onChange={e => set('transportationSpecialEd', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
+              <Field label="Referring Party">
+                <input className={inputCls} value={form.referringParty} onChange={e => set('referringParty', e.target.value)} />
+              </Field>
+              <Field label="Service Provider">
+                <input className={inputCls} value={form.serviceProvider} onChange={e => set('serviceProvider', e.target.value)} />
+              </Field>
+            </div>
+          </section>
+
+          {/* Language & Demographics */}
+          <section>
+            <SectionHeader label="Language & Demographics" icon="🌐" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Native Language">
+                <input className={inputCls} value={form.nativeLanguage} onChange={e => set('nativeLanguage', e.target.value)} />
+              </Field>
+              <Field label="Ethnicity">
+                <input className={inputCls} value={form.ethnicity} onChange={e => set('ethnicity', e.target.value)} />
+              </Field>
+              <Field label="Residency">
+                <input className={inputCls} value={form.residency} onChange={e => set('residency', e.target.value)} />
+              </Field>
+              <Field label="English Learner">
+                <select className={selectCls} value={form.englishLearner ? 'yes' : 'no'} onChange={e => set('englishLearner', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
               {form.englishLearner && (
-                <div className="space-y-1.5">
-                  <Label>EL Start Date</Label>
-                  <input type="date" className={fieldClass} value={form.elStartDate} onChange={(e) => updateField('elStartDate', e.target.value)} />
-                </div>
+                <Field label="EL Start Date">
+                  <input type="date" className={inputCls} value={form.elStartDate} onChange={e => set('elStartDate', e.target.value)} />
+                </Field>
               )}
-              <div className="space-y-1.5">
-                <Label>Redesignated</Label>
-                <Select value={form.redesignated ? 'yes' : 'no'} onValueChange={(v) => updateField('redesignated', v === 'yes')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <Field label="Redesignated">
+                <select className={selectCls} value={form.redesignated ? 'yes' : 'no'} onChange={e => set('redesignated', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
               {form.redesignated && (
-                <div className="space-y-1.5">
-                  <Label>Reclassification Date</Label>
-                  <input type="date" className={fieldClass} value={form.reclassificationDate} onChange={(e) => updateField('reclassificationDate', e.target.value)} />
-                </div>
+                <Field label="Reclassification Date">
+                  <input type="date" className={inputCls} value={form.reclassificationDate} onChange={e => set('reclassificationDate', e.target.value)} />
+                </Field>
               )}
-              <div className="space-y-1.5">
-                <Label>Ethnicity *</Label>
-                <Input value={form.ethnicity} onChange={(e) => updateField('ethnicity', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Residency *</Label>
-                <Input value={form.residency} onChange={(e) => updateField('residency', e.target.value)} />
-              </div>
             </div>
-          )}
+          </section>
 
-          {activeTab === 'disability' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label>Primary Disability Code *</Label>
-                <Input value={form.primaryDisability} onChange={(e) => updateField('primaryDisability', e.target.value)} />
-                <p className="text-xs text-warm-gray-500 mt-1">Enter the disability code (e.g., 320 for Autism, 290 for SLD)</p>
-              </div>
-              <div className="space-y-1.5">
-                <Label>% Outside General Education</Label>
-                <Input type="number" min={0} max={100} value={form.percentageOutsideGenEd} onChange={(e) => updateField('percentageOutsideGenEd', parseInt(e.target.value) || 0)} />
-              </div>
+          {/* Disability */}
+          <section>
+            <SectionHeader label="Disability" icon="📋" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Primary Disability Code">
+                <input className={inputCls} value={form.primaryDisability} onChange={e => set('primaryDisability', e.target.value)} placeholder="e.g. 320 (Autism), 290 (SLD)" />
+              </Field>
+              <Field label="% Outside General Education">
+                <input type="number" min={0} max={100} className={inputCls} value={form.percentageOutsideGenEd} onChange={e => set('percentageOutsideGenEd', parseInt(e.target.value) || 0)} />
+              </Field>
             </div>
-          )}
+          </section>
 
-          {activeTab === 'dates' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>SPED Entry Date *</Label>
-                <input type="date" className={fieldClass} value={form.spedEntryDate} onChange={(e) => updateField('spedEntryDate', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Triennial Due *</Label>
-                <input type="date" className={fieldClass} value={form.triennialDue} onChange={(e) => updateField('triennialDue', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Current IEP Date</Label>
-                <input type="date" className={fieldClass} value={form.currentIepDate} onChange={(e) => updateField('currentIepDate', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Psychoeducational Report Date</Label>
-                <input type="date" className={fieldClass} value={form.currentPsychoReportDate} onChange={(e) => updateField('currentPsychoReportDate', e.target.value)} />
-              </div>
+          {/* SPED Dates */}
+          <section>
+            <SectionHeader label="SPED Dates" icon="📅" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Deadline Date">
+                <input type="date" className={inputCls} value={form.deadlineDate} onChange={e => set('deadlineDate', e.target.value)} />
+              </Field>
+              <Field label="SPED Entry Date">
+                <input type="date" className={inputCls} value={form.spedEntryDate} onChange={e => set('spedEntryDate', e.target.value)} />
+              </Field>
+              <Field label="Triennial Due">
+                <input type="date" className={inputCls} value={form.triennialDue} onChange={e => set('triennialDue', e.target.value)} />
+              </Field>
+              <Field label="Current IEP Date">
+                <input type="date" className={inputCls} value={form.currentIepDate} onChange={e => set('currentIepDate', e.target.value)} />
+              </Field>
+              <Field label="Psychoeducational Report Date">
+                <input type="date" className={inputCls} value={form.currentPsychoReportDate} onChange={e => set('currentPsychoReportDate', e.target.value)} />
+              </Field>
             </div>
-          )}
+          </section>
 
-          {activeTab === 'lastPlacement' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>School *</Label>
-                <Input value={form.lastPlacementSchool} onChange={(e) => updateField('lastPlacementSchool', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>District *</Label>
-                <Input value={form.lastPlacementDistrict} onChange={(e) => updateField('lastPlacementDistrict', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>County *</Label>
-                <Input value={form.lastPlacementCounty} onChange={(e) => updateField('lastPlacementCounty', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>State *</Label>
-                <Input value={form.lastPlacementState} onChange={(e) => updateField('lastPlacementState', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Phone</Label>
-                <Input type="tel" value={form.lastPlacementPhone} onChange={(e) => updateField('lastPlacementPhone', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Contact Person</Label>
-                <Input value={form.lastPlacementContactPerson} onChange={(e) => updateField('lastPlacementContactPerson', e.target.value)} />
-              </div>
+          {/* System Sync (SEIS / Aeries / CUM) */}
+          <section>
+            <SectionHeader label="System Sync" icon="🔁" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="In SEIS">
+                <select className={selectCls} value={form.inSEIS ? 'yes' : 'no'} onChange={e => set('inSEIS', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
+              <Field label="SEIS Date">
+                <input type="date" className={inputCls} value={form.inSEISDate} onChange={e => set('inSEISDate', e.target.value)} />
+              </Field>
+              <Field label="In Aeries">
+                <select className={selectCls} value={form.inAeries ? 'yes' : 'no'} onChange={e => set('inAeries', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
+              <Field label="Aeries Date">
+                <input type="date" className={inputCls} value={form.inAeriesDate} onChange={e => set('inAeriesDate', e.target.value)} />
+              </Field>
+              <FieldWide label="CUM Notes">
+                <input className={inputCls} value={form.cumNotes} onChange={e => set('cumNotes', e.target.value)} placeholder="e.g. CUM requested from: PIP | CUM processed by: AB" />
+              </FieldWide>
             </div>
-          )}
+          </section>
 
-          {activeTab === 'authorization' && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>LEA Representative *</Label>
-                <Input value={form.leaRepresentativeName} onChange={(e) => updateField('leaRepresentativeName', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Position *</Label>
-                <Input value={form.leaRepresentativePosition} onChange={(e) => updateField('leaRepresentativePosition', e.target.value)} />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Non-SEIS IEP</Label>
-                <Select value={form.nonSeisIep ? 'yes' : 'no'} onValueChange={(v) => updateField('nonSeisIep', v === 'yes')}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="yes">Yes</SelectItem>
-                    <SelectItem value="no">No</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Submitted By Email</Label>
-                <Input type="email" value={form.submittedByEmail} onChange={(e) => updateField('submittedByEmail', e.target.value)} />
-              </div>
-              <div className="sm:col-span-2 space-y-1.5">
-                <Label>Additional Comments</Label>
-                <Textarea value={form.additionalComments} onChange={(e) => updateField('additionalComments', e.target.value)} rows={3} />
-              </div>
+          {/* Last Placement */}
+          <section>
+            <SectionHeader label="Last Placement" icon="🔄" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="School">
+                <input className={inputCls} value={form.lastPlacementSchool} onChange={e => set('lastPlacementSchool', e.target.value)} />
+              </Field>
+              <Field label="District">
+                <input className={inputCls} value={form.lastPlacementDistrict} onChange={e => set('lastPlacementDistrict', e.target.value)} />
+              </Field>
+              <Field label="County">
+                <input className={inputCls} value={form.lastPlacementCounty} onChange={e => set('lastPlacementCounty', e.target.value)} />
+              </Field>
+              <Field label="State">
+                <input className={inputCls} value={form.lastPlacementState} onChange={e => set('lastPlacementState', e.target.value)} />
+              </Field>
+              <Field label="Phone">
+                <input type="tel" className={inputCls} value={form.lastPlacementPhone} onChange={e => set('lastPlacementPhone', e.target.value)} />
+              </Field>
+              <Field label="Contact Person">
+                <input className={inputCls} value={form.lastPlacementContactPerson} onChange={e => set('lastPlacementContactPerson', e.target.value)} />
+              </Field>
             </div>
-          )}
+          </section>
+
+          {/* Authorization */}
+          <section>
+            <SectionHeader label="Authorization" icon="✅" />
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="LEA Representative">
+                <input className={inputCls} value={form.leaRepresentativeName} onChange={e => set('leaRepresentativeName', e.target.value)} />
+              </Field>
+              <Field label="Position">
+                <input className={inputCls} value={form.leaRepresentativePosition} onChange={e => set('leaRepresentativePosition', e.target.value)} />
+              </Field>
+              <Field label="Non-SEIS IEP">
+                <select className={selectCls} value={form.nonSeisIep ? 'yes' : 'no'} onChange={e => set('nonSeisIep', e.target.value === 'yes')}>
+                  <option value="no">No</option>
+                  <option value="yes">Yes</option>
+                </select>
+              </Field>
+              <Field label="Submitted By Email">
+                <input type="email" className={inputCls} value={form.submittedByEmail} onChange={e => set('submittedByEmail', e.target.value)} />
+              </Field>
+              <FieldWide label="Additional Comments">
+                <textarea
+                  className={inputCls + ' resize-none'}
+                  rows={3}
+                  value={form.additionalComments}
+                  onChange={e => set('additionalComments', e.target.value)}
+                />
+              </FieldWide>
+            </div>
+          </section>
+
+          {/* Bottom padding so last section clears the footer */}
+          <div className="h-4" />
         </div>
 
-        <DialogFooter className="border-t border-cream-200 pt-4 -mx-6 px-6">
-          <Button variant="outline" onClick={onClose} disabled={saving}>
+        {/* Sticky footer */}
+        <div className="shrink-0 flex items-center justify-between gap-3 px-6 py-4 border-t border-slate-100 bg-white">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 text-sm font-medium text-slate-600 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50"
+          >
             Cancel
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="px-5 py-2 text-sm font-semibold text-white bg-sky-600 rounded-lg hover:bg-sky-700 transition-colors disabled:opacity-60 flex items-center gap-2"
+          >
+            {saving && (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+            )}
+            {saving ? 'Saving…' : 'Save Changes'}
+          </button>
+        </div>
+      </div>
+    </>
   )
 }

@@ -13,6 +13,17 @@ export function generateConfirmationNumber(): string {
 }
 
 /**
+ * Generates a unique draft number for saved referral drafts
+ * Format: DFT-YYYYMMDD-XXXX
+ */
+export function generateDraftNumber(): string {
+  const date = new Date()
+  const dateStr = date.toISOString().split('T')[0].replace(/-/g, '')
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase()
+  return `DFT-${dateStr}-${random}`
+}
+
+/**
  * Generates a unique order number
  * Format: ORD-YYYY-MM-DD-XXX
  */

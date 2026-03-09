@@ -3,11 +3,19 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/lib/auth/hooks'
 import { hasPermission } from '@/lib/auth/permissions'
+import {
+  getRoleDisplayName,
+  getSystemRoleOptionId,
+  getSystemRoleOptions,
+  SYSTEM_ROLE_LABELS,
+  type RoleOptionResponse,
+} from '@/lib/auth/role-options'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import type { UserRole } from '@prisma/client'
 import {
   Dialog,
   DialogContent,
@@ -28,7 +36,12 @@ type User = {
   id: string
   email: string
   name: string
-  role: string
+  role: UserRole
+  roleOption: {
+    id: string
+    name: string
+    baseRole: UserRole
+  } | null
   organization: string | null
   phoneNumber: string | null
   jobTitle: string | null
@@ -40,7 +53,8 @@ type User = {
 type UserFormData = {
   email: string
   name: string
-  role: 'EXTERNAL_ORG' | 'TEACHER' | 'SPED_STAFF' | 'ADMIN' | 'SUPER_ADMIN'
+  role: UserRole
+  roleOptionId: string | null
   organization: string
   phoneNumber: string
   jobTitle: string
@@ -51,13 +65,16 @@ export default function UsersPage() {
   const router = useRouter()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingRoleOptions, setLoadingRoleOptions] = useState(true)
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingUser, setEditingUser] = useState<User | null>(null)
+  const [roleOptions, setRoleOptions] = useState<RoleOptionResponse[]>(getSystemRoleOptions())
   const [formData, setFormData] = useState<UserFormData>({
     email: '',
     name: '',
     role: 'TEACHER',
+    roleOptionId: null,
     organization: '',
     phoneNumber: '',
     jobTitle: '',
@@ -92,11 +109,34 @@ export default function UsersPage() {
     }
   }, [filterRole, searchQuery])
 
+  const fetchRoleOptions = useCallback(async () => {
+    try {
+      const response = await fetch('/api/settings/user-roles')
+      if (!response.ok) {
+        return
+      }
+      const data = await response.json()
+      if (Array.isArray(data.roleOptions) && data.roleOptions.length > 0) {
+        setRoleOptions(data.roleOptions)
+      } else {
+        setRoleOptions(getSystemRoleOptions())
+      }
+    } catch (err) {
+      console.error('Error fetching role options:', err)
+      setRoleOptions(getSystemRoleOptions())
+    } finally {
+      setLoadingRoleOptions(false)
+    }
+  }, [])
+
   useEffect(() => {
     if (currentUser && hasPermission(currentUser.role, 'users:view')) {
       fetchUsers()
+      fetchRoleOptions()
+    } else {
+      setLoadingRoleOptions(false)
     }
-  }, [currentUser, fetchUsers])
+  }, [currentUser, fetchUsers, fetchRoleOptions])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -126,6 +166,7 @@ export default function UsersPage() {
           email: '',
           name: '',
           role: 'TEACHER',
+          roleOptionId: null,
           organization: '',
           phoneNumber: '',
           jobTitle: '',
@@ -156,6 +197,7 @@ export default function UsersPage() {
         body: JSON.stringify({
           name: formData.name,
           role: formData.role,
+          roleOptionId: formData.roleOptionId,
           organization: formData.organization || null,
           phoneNumber: formData.phoneNumber || null,
           jobTitle: formData.jobTitle || null,
@@ -184,7 +226,8 @@ export default function UsersPage() {
     setFormData({
       email: user.email,
       name: user.name,
-      role: user.role as UserFormData['role'],
+      role: user.role,
+      roleOptionId: user.roleOption?.id ?? null,
       organization: user.organization || '',
       phoneNumber: user.phoneNumber || '',
       jobTitle: user.jobTitle || '',
@@ -250,7 +293,25 @@ export default function UsersPage() {
     }
   }
 
-  if (authLoading || loading) {
+  const getSelectedRoleOptionValue = (role: UserRole, roleOptionId: string | null) => {
+    if (roleOptionId && roleOptions.some((option) => option.id === roleOptionId)) {
+      return roleOptionId
+    }
+    return getSystemRoleOptionId(role)
+  }
+
+  const applyRoleSelection = (selectedOptionId: string) => {
+    const selectedOption = roleOptions.find((option) => option.id === selectedOptionId)
+    if (!selectedOption) return
+
+    setFormData((prev) => ({
+      ...prev,
+      role: selectedOption.baseRole,
+      roleOptionId: selectedOption.isSystem ? null : selectedOption.id,
+    }))
+  }
+
+  if (authLoading || loading || loadingRoleOptions) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage-600"></div>
@@ -262,15 +323,7 @@ export default function UsersPage() {
     return null
   }
 
-  const roleLabels: Record<string, string> = {
-    EXTERNAL_ORG: 'External Organization',
-    TEACHER: 'Teacher',
-    SPED_STAFF: 'SPED Staff',
-    ADMIN: 'Administrator',
-    SUPER_ADMIN: 'Super Administrator',
-  }
-
-  const roleColors: Record<string, string> = {
+  const roleColors: Record<UserRole, string> = {
     EXTERNAL_ORG: 'bg-teal-100 text-teal-700',
     TEACHER: 'bg-sky-100 text-sky-700',
     SPED_STAFF: 'bg-sage-100 text-sage-700',
@@ -329,10 +382,11 @@ export default function UsersPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
-                <SelectItem value="EXTERNAL_ORG">External Organization</SelectItem>
-                <SelectItem value="TEACHER">Teacher</SelectItem>
-                <SelectItem value="SPED_STAFF">SPED Staff</SelectItem>
-                <SelectItem value="ADMIN">Administrator</SelectItem>
+                {Object.entries(SYSTEM_ROLE_LABELS).map(([value, label]) => (
+                  <SelectItem key={value} value={value}>
+                    {label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -356,7 +410,7 @@ export default function UsersPage() {
                   </div>
                   <div className="flex flex-wrap gap-2 ml-13">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${roleColors[user.role]}`}>
-                      {roleLabels[user.role]}
+                      {getRoleDisplayName(user.role, user.roleOption?.name)}
                     </span>
                     <span
                       className={`px-2.5 py-1 rounded-full text-xs font-medium ${
@@ -458,18 +512,20 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="role">Role *</Label>
                 <Select
-                  value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value as UserFormData['role'] })}
+                  value={getSelectedRoleOptionValue(formData.role, formData.roleOptionId)}
+                  onValueChange={applyRoleSelection}
                 >
                   <SelectTrigger id="role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TEACHER">Teacher</SelectItem>
-                    <SelectItem value="SPED_STAFF">SPED Staff</SelectItem>
-                    <SelectItem value="ADMIN">Administrator</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Administrator</SelectItem>
-                    <SelectItem value="EXTERNAL_ORG">External Organization</SelectItem>
+                    {roleOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.isSystem
+                          ? option.name
+                          : `${option.name} (${SYSTEM_ROLE_LABELS[option.baseRole]})`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -548,18 +604,20 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <Label htmlFor="edit-role">Role *</Label>
                 <Select
-                  value={formData.role}
-                  onValueChange={(value) => setFormData({ ...formData, role: value as UserFormData['role'] })}
+                  value={getSelectedRoleOptionValue(formData.role, formData.roleOptionId)}
+                  onValueChange={applyRoleSelection}
                 >
                   <SelectTrigger id="edit-role">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="TEACHER">Teacher</SelectItem>
-                    <SelectItem value="SPED_STAFF">SPED Staff</SelectItem>
-                    <SelectItem value="ADMIN">Administrator</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Administrator</SelectItem>
-                    <SelectItem value="EXTERNAL_ORG">External Organization</SelectItem>
+                    {roleOptions.map((option) => (
+                      <SelectItem key={option.id} value={option.id}>
+                        {option.isSystem
+                          ? option.name
+                          : `${option.name} (${SYSTEM_ROLE_LABELS[option.baseRole]})`}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>

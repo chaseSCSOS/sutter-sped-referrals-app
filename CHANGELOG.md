@@ -2,6 +2,45 @@
 
 All notable changes to the Sutter SPED Referrals system will be documented in this file.
 
+## [1.3.0] - 2026-03-09
+
+### ✨ Added
+- **Save Draft feature** for all three referral forms (Interim, DHH Itinerant, Level II)
+  - "Save Draft" button on every form opens a dialog prompting for an email address
+  - Draft form data stored in a new `ReferralDraft` database table with a 30-day expiry
+  - Confirmation email sent to the submitter with the draft number (`DFT-YYYYMMDD-XXXX` format)
+  - Subsequent saves on the same session update the existing draft rather than creating a new one
+- **Resume a Draft** tab on the `/referrals/status` page
+  - Submitter enters their email and draft number to retrieve a saved draft
+  - On success, form data is loaded via `sessionStorage` and the submitter is redirected to the correct form with all fields pre-populated
+  - Amber banner displayed on resume reminding user to re-attach documents
+- **`sendDraftSavedEmail()`** in `lib/email.ts` using the existing MS Graph / SCSOS template
+- **`generateDraftNumber()`** in `lib/utils.ts`
+- **`app/api/referrals/draft/route.ts`** — `POST` (create/update draft) and `GET` (retrieve by email + draft number) endpoints
+- **`app/components/save-draft-dialog.tsx`** — reusable modal component shared across all three forms
+
+### 🗄️ Database
+- New `ReferralDraft` model in `prisma/schema.prisma` with `draftNumber`, `email`, `formType`, `formData` (JSON), and `expiresAt` fields
+- Migration: `20260309180958_add_referral_draft`
+
+### 📝 Updated
+- `/referrals/status` page: added tabbed interface — "Check Referral Status" | "Resume a Draft"
+- All three referral form components: added `getValues`/`reset` to React Hook Form, draft state management, and `useEffect` sessionStorage load on mount
+
+---
+
+## [1.2.0] - 2026-03-09
+
+### ✨ Added
+- Added **DHH Itinerant referral form** as a dedicated intake workflow
+- Added **Level II referral form** as a dedicated intake workflow
+- Added **staff changelog page** at `/dashboard/changelog` backed by `USER-CHANGES.md`
+
+### 📝 Updated
+- Updated changelog content/year references to reflect 2026 updates
+
+---
+
 ## [1.1.0] - 2025-03-06
 
 ### 🎯 **Major Updates**
@@ -50,7 +89,7 @@ All notable changes to the Sutter SPED Referrals system will be documented in th
 - Synced frontend field visibility with backend checklist requirement logic
 
 ### 📧 **Email Notifications System**
-- **Automated Email Delivery**: Integrated Microsoft Graph API for reliable email sending from `noreply@sutter.k12.ca.us`
+- **Automated Email Delivery**: Integrated Microsoft Graph API for reliable email sending from `no-reply@sutter.k12.ca.us`
 - **Order Notifications**: 
   - SPED staff notified when new orders are submitted
   - Requestors receive confirmation and status change updates

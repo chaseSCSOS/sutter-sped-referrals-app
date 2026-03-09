@@ -15,6 +15,7 @@ model Referral {
   confirmationNumber          String   @unique
   status                      ReferralStatus @default(SUBMITTED)
   formType                    FormType @default(INTERIM)
+  pipIndicator                Boolean  @default(false)  // PIP checkbox from Excel (purpose TBD)
   submittedAt                 DateTime @default(now())
   updatedAt                   DateTime @updatedAt
   deadlineDate                DateTime
@@ -25,6 +26,7 @@ model Referral {
   dateOfBirth                 DateTime
   age                         Int?
   grade                       String
+  classroomTeacher            String?        // General education classroom teacher name
   gender                      String?
   fosterYouth                 Boolean?
   birthplace                  String?
@@ -268,6 +270,7 @@ model User {
   email             String         @unique
   name              String
   role              UserRole
+  roleOptionId      String?
 
   // Authentication (Supabase Auth)
   supabaseUserId    String?        @unique
@@ -287,6 +290,7 @@ model User {
   createdBy         String?
 
   // Relationships
+  roleOption        UserRoleOption?         @relation(fields: [roleOptionId], references: [id], onDelete: SetNull)
   referralsAssigned Referral[]              @relation("AssignedReferrals")
   referralsSubmitted Referral[]             @relation("SubmittedReferrals")
   cumProcessedReferrals Referral[]          @relation("CumProcessedByStaff")
@@ -296,8 +300,21 @@ model User {
   orderNotes        OrderNote[]             @relation("OrderNoteCreatedBy")
 
   @@index([role])
+  @@index([roleOptionId])
   @@index([supabaseUserId])
   @@index([email])
+}
+
+model UserRoleOption {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  baseRole    UserRole
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?
+  users       User[]
+
+  @@index([baseRole])
 }
 
 // ==================== ORDER MANAGEMENT MODELS ====================
@@ -527,6 +544,21 @@ enum ChecklistStatus {
   ACCEPTED
   REJECTED
   MISSING
+}
+
+model ReferralDraft {
+  id          String   @id @default(uuid())
+  draftNumber String   @unique
+  email       String
+  formType    FormType
+  formData    Json
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  expiresAt   DateTime
+
+  @@index([email])
+  @@index([draftNumber])
+  @@index([expiresAt])
 }
 
 model EmailSettings {

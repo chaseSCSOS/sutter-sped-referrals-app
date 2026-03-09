@@ -7,6 +7,17 @@ import Image from 'next/image'
 import { useAuth } from '@/lib/auth/hooks'
 import { hasPermission } from '@/lib/auth/permissions'
 import { canAccessMyOrders } from '@/lib/auth/order-requestors'
+import { WelcomeTour } from '@/components/WelcomeTour'
+
+const NAV_TOUR_IDS: Record<string, string> = {
+  '/dashboard/referrals': 'nav-referrals',
+  '/dashboard/orders': 'nav-orders',
+  '/dashboard/reports/enrollment': 'nav-reports',
+  '/dashboard/users': 'nav-users',
+  '/dashboard/my-referrals': 'nav-my-referrals',
+  '/dashboard/my-orders': 'nav-my-orders',
+  '/dashboard/orders/submit': 'nav-submit-order',
+}
 
 const NAVIGATION = [
   {
@@ -141,8 +152,9 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, loading, signOut, isAuthenticated } = useAuth()
+  const { user, loading, signOut, isAuthenticated, userNotFound } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [tourOpen, setTourOpen] = useState(false)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -164,6 +176,34 @@ export default function DashboardLayout({
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sage-600 mx-auto"></div>
           <p className="mt-4 text-warm-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (isAuthenticated && userNotFound) {
+    return (
+      <div className="min-h-screen bg-cream-100 flex items-center justify-center px-4">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg border border-cream-200 p-8 text-center">
+          <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-warm-gray-900 mb-2">Account Setup Incomplete</h1>
+          <p className="text-sm text-warm-gray-600 mb-6">
+            Your login credentials were found, but your account has not been fully set up in SPEDEX yet.
+            Please contact your SCSOS administrator to have your account created through the portal.
+          </p>
+          <p className="text-xs text-warm-gray-500 mb-6">
+            Administrators: go to <strong>Dashboard → Users → New User</strong> and enter this person's email to complete setup.
+          </p>
+          <button
+            onClick={signOut}
+            className="w-full py-2.5 px-4 rounded-xl text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 transition-colors"
+          >
+            Sign Out
+          </button>
         </div>
       </div>
     )
@@ -227,6 +267,7 @@ export default function DashboardLayout({
                 <Link
                   key={item.href}
                   href={item.href}
+                  data-tour={NAV_TOUR_IDS[item.href]}
                   className={`flex items-center gap-3 px-3 py-2.5 rounded text-sm font-medium transition-colors ${
                     isActive
                       ? 'bg-sage-100 text-sage-700'
@@ -255,8 +296,17 @@ export default function DashboardLayout({
               </div>
             </Link>
             <button
+              onClick={() => setTourOpen(true)}
+              className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm text-warm-gray-600 hover:bg-cream-100 rounded transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Take a tour
+            </button>
+            <button
               onClick={signOut}
-              className="mt-2 w-full px-3 py-2 text-sm text-warm-gray-600 hover:bg-cream-100 rounded transition-colors"
+              className="mt-1 w-full px-3 py-2 text-sm text-warm-gray-600 hover:bg-cream-100 rounded transition-colors"
             >
               Sign Out
             </button>
@@ -288,6 +338,13 @@ export default function DashboardLayout({
           {children}
         </main>
       </div>
+
+      <WelcomeTour
+        role={user.role}
+        userId={user.id}
+        forceOpen={tourOpen}
+        onClose={() => setTourOpen(false)}
+      />
     </div>
   )
 }

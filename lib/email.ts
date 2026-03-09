@@ -3,7 +3,7 @@ import { ConfidentialClientApplication } from '@azure/msal-node'
 const TENANT_ID = process.env.AZURE_TENANT_ID!
 const CLIENT_ID = process.env.AZURE_CLIENT_ID!
 const CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET!
-const MAIL_FROM = process.env.MAIL_FROM || 'noreply@sutter.k12.ca.us'
+const MAIL_FROM = process.env.MAIL_FROM || 'no-reply@sutter.k12.ca.us'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
 let _msalApp: ConfidentialClientApplication | null = null
@@ -423,6 +423,7 @@ interface UserAccessEmailData {
   recipientName: string
   recipientEmail: string
   role: string
+  roleLabel?: string | null
   actionLink: string
   sentByName?: string | null
 }
@@ -430,7 +431,7 @@ interface UserAccessEmailData {
 export async function sendUserInvitationEmail(data: UserAccessEmailData) {
   const safeName = escapeHtml(data.recipientName)
   const safeEmail = escapeHtml(data.recipientEmail)
-  const safeRole = escapeHtml(USER_ROLE_LABELS[data.role] || data.role)
+  const safeRole = escapeHtml(data.roleLabel || USER_ROLE_LABELS[data.role] || data.role)
   const safeSignInUrl = escapeHtml(SIGN_IN_URL)
   const inviterLine = data.sentByName
     ? `<p style="margin:0 0 18px;font-size:14px;color:#6b6057;"><strong>${escapeHtml(data.sentByName)}</strong> created your account.</p>`
@@ -465,7 +466,7 @@ export async function sendUserInvitationEmail(data: UserAccessEmailData) {
 export async function sendUserPasswordResetEmail(data: UserAccessEmailData) {
   const safeName = escapeHtml(data.recipientName)
   const safeEmail = escapeHtml(data.recipientEmail)
-  const safeRole = escapeHtml(USER_ROLE_LABELS[data.role] || data.role)
+  const safeRole = escapeHtml(data.roleLabel || USER_ROLE_LABELS[data.role] || data.role)
 
   const html = emailWrapper(`
     <p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#1e3a2f;">Password Reset Requested</p>
@@ -591,13 +592,55 @@ export async function sendOverdueCumAlert(
 }
 
 // ---------------------------------------------------------------------------
+// Draft saved email
+// ---------------------------------------------------------------------------
+
+export async function sendDraftSavedEmail(
+  email: string,
+  draftNumber: string,
+  formType: string,
+  expiresAt: Date
+) {
+  const formLabels: Record<string, string> = {
+    INTERIM: 'Interim Referral',
+    DHH_ITINERANT: 'DHH Itinerant Referral',
+    LEVEL_II: 'Level II Referral',
+  }
+  const formLabel = formLabels[formType] || 'Referral'
+  const expiryStr = expiresAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+
+  const html = emailWrapper(`
+    <p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#1e3a2f;">Draft Saved</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b6057;">Your <strong>${formLabel}</strong> draft has been saved. Use the number below to resume where you left off.</p>
+
+    <div style="background:#f0f7f3;border:2px solid #2d6a4f;border-radius:10px;padding:16px 24px;text-align:center;margin:24px 0;">
+      <p style="margin:0;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;color:#2d6a4f;">Draft Number</p>
+      <p style="margin:6px 0 0;font-size:28px;font-weight:800;letter-spacing:4px;color:#1e3a2f;font-family:monospace;">${escapeHtml(draftNumber)}</p>
+      <p style="margin:6px 0 0;font-size:12px;color:#5a7a6a;">Keep this number — you will need it along with your email to resume</p>
+    </div>
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f7f4;border:1px solid #e8e3db;border-radius:8px;margin-bottom:24px;">
+      ${infoRow('Form Type', formLabel)}
+      ${infoRow('Expires', expiryStr)}
+    </table>
+
+    <p style="margin:0 0 8px;font-size:14px;color:#4a4039;">To resume your draft, visit the referral status page and select <strong>"Resume a Draft"</strong>. Enter your email address and the draft number above.</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#d97706;"><strong>Note:</strong> Any uploaded documents will need to be re-attached when you resume.</p>
+
+    ${ctaButton('Resume Your Draft', `${APP_URL}/referrals/status`)}
+  `)
+
+  await sendMail(email, `Draft Saved – ${draftNumber}`, html)
+}
+
+// ---------------------------------------------------------------------------
 // Settings helper — load notify emails from DB
 // ---------------------------------------------------------------------------
 
 export async function getEmailSettings(): Promise<{ orderNotifyEmails: string[]; referralNotifyEmails: string[]; cumReminderDays: number; seisAeriesReminderDays: number }> {
   try {
     const { prisma } = await import('@/lib/prisma')
-    const settings = await (prisma as any).emailSettings.findFirst()
+    const settings = await prisma.emailSettings.findFirst()
     return {
       orderNotifyEmails: settings?.orderNotifyEmails ?? [],
       referralNotifyEmails: settings?.referralNotifyEmails ?? [],
