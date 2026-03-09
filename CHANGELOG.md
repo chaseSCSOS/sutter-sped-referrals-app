@@ -89,7 +89,7 @@ All notable changes to the Sutter SPED Referrals system will be documented in th
 - Synced frontend field visibility with backend checklist requirement logic
 
 ### 📧 **Email Notifications System**
-- **Automated Email Delivery**: Integrated Microsoft Graph API for reliable email sending from `no-reply@sutter.k12.ca.us`
+- **Automated Email Delivery**: Integrated Microsoft Graph API for reliable email sending
 - **Order Notifications**: 
   - SPED staff notified when new orders are submitted
   - Requestors receive confirmation and status change updates

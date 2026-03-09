@@ -287,7 +287,7 @@ DATABASE_URL="postgresql://user:password@localhost:5432/sped_referrals"
 AZURE_TENANT_ID="your-tenant-id"
 AZURE_CLIENT_ID="your-app-client-id"
 AZURE_CLIENT_SECRET="your-app-client-secret"
-MAIL_FROM="no-reply@sutter.k12.ca.us"
+MAIL_FROM="your-no-reply-email@domain.com"
 
 # Laserfiche
 LASERFICHE_URL="https://api.laserfiche.com"

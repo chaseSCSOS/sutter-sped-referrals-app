@@ -3,7 +3,7 @@ import { ConfidentialClientApplication } from '@azure/msal-node'
 const TENANT_ID = process.env.AZURE_TENANT_ID!
 const CLIENT_ID = process.env.AZURE_CLIENT_ID!
 const CLIENT_SECRET = process.env.AZURE_CLIENT_SECRET!
-const MAIL_FROM = process.env.MAIL_FROM || 'no-reply@sutter.k12.ca.us'
+const MAIL_FROM = process.env.MAIL_FROM!
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
 let _msalApp: ConfidentialClientApplication | null = null
