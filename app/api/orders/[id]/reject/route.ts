@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/lib/supabase/server'
+import { sendOrderStatusChangedToRequestor } from '@/lib/email'
 
 export async function POST(
   request: NextRequest,
@@ -76,7 +77,16 @@ export async function POST(
       },
     })
 
-    // TODO: Send email notification to requestor
+    if (updatedOrder.requestor?.email) {
+      sendOrderStatusChangedToRequestor(
+        updatedOrder.requestor.email,
+        updatedOrder.requestor.name,
+        id,
+        updatedOrder.orderNumber,
+        'CANCELLED',
+        reason
+      ).catch(err => console.error('[email] rejected order notification failed:', err))
+    }
 
     return NextResponse.json({
       success: true,

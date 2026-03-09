@@ -13,7 +13,7 @@ const NAV_TOUR_IDS: Record<string, string> = {
   '/dashboard/referrals': 'nav-referrals',
   '/dashboard/orders': 'nav-orders',
   '/dashboard/reports/enrollment': 'nav-reports',
-  '/dashboard/users': 'nav-users',
+  '/dashboard/settings': 'nav-users',
   '/dashboard/my-referrals': 'nav-my-referrals',
   '/dashboard/my-orders': 'nav-my-orders',
   '/dashboard/orders/submit': 'nav-submit-order',
@@ -111,16 +111,6 @@ const NAVIGATION = [
     ),
   },
   {
-    name: 'Users',
-    href: '/dashboard/users',
-    permission: 'users:view' as const,
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    ),
-  },
-  {
     name: 'Settings',
     href: '/dashboard/settings',
     permission: 'users:view' as const,
@@ -131,19 +121,7 @@ const NAVIGATION = [
       </svg>
     ),
   },
-  {
-    name: 'Change Log',
-    href: '/dashboard/changelog',
-    permission: 'changelog:view' as const,
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h4" />
-      </svg>
-    ),
-  },
-]
+  ]
 
 export default function DashboardLayout({
   children,
@@ -155,6 +133,7 @@ export default function DashboardLayout({
   const { user, loading, signOut, isAuthenticated, userNotFound } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [tourOpen, setTourOpen] = useState(false)
+  const [avatarMenuOpen, setAvatarMenuOpen] = useState(false)
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -169,6 +148,20 @@ export default function DashboardLayout({
       router.push('/auth/pending-approval')
     }
   }, [user, router])
+
+  // Close avatar dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (avatarMenuOpen) {
+        setAvatarMenuOpen(false)
+      }
+    }
+
+    if (avatarMenuOpen) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [avatarMenuOpen])
 
   if (loading) {
     return (
@@ -196,7 +189,7 @@ export default function DashboardLayout({
             Please contact your SCSOS administrator to have your account created through the portal.
           </p>
           <p className="text-xs text-warm-gray-500 mb-6">
-            Administrators: go to <strong>Dashboard → Users → New User</strong> and enter this person's email to complete setup.
+            Administrators: go to <strong>Dashboard → Settings → Users → New User</strong> and enter this person's email to complete setup.
           </p>
           <button
             onClick={signOut}
@@ -283,18 +276,50 @@ export default function DashboardLayout({
           </nav>
 
           <div className="p-3 border-t border-cream-200 bg-cream-50">
-            <Link
-              href="/dashboard/profile"
-              className="flex items-center gap-3 px-3 py-2.5 rounded hover:bg-cream-100 transition-colors"
-            >
-              <div className="w-8 h-8 bg-sky-200 rounded-full flex items-center justify-center text-sky-700 font-medium text-sm">
-                {user.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-warm-gray-900 truncate">{user.name}</p>
-                <p className="text-xs text-warm-gray-600 truncate">{user.role.replace('_', ' ')}</p>
-              </div>
-            </Link>
+            {/* Avatar with dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setAvatarMenuOpen(!avatarMenuOpen)}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded hover:bg-cream-100 transition-colors"
+              >
+                <div className="w-8 h-8 bg-sky-200 rounded-full flex items-center justify-center text-sky-700 font-medium text-sm">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-medium text-warm-gray-900 truncate">{user.name}</p>
+                  <p className="text-xs text-warm-gray-600 truncate">{user.role.replace('_', ' ')}</p>
+                </div>
+                <svg className={`w-4 h-4 text-warm-gray-400 transition-transform ${avatarMenuOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              
+              {avatarMenuOpen && (
+                <div className="absolute bottom-full left-3 right-3 mb-2 bg-white border border-cream-200 rounded-lg shadow-lg overflow-hidden">
+                  <Link
+                    href="/dashboard/profile"
+                    className="flex items-center gap-3 px-3 py-2.5 text-sm text-warm-gray-700 hover:bg-cream-100 transition-colors"
+                    onClick={() => setAvatarMenuOpen(false)}
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    Profile
+                  </Link>
+                  <button
+                    onClick={signOut}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-sm text-warm-gray-700 hover:bg-cream-100 transition-colors"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Tour button */}
             <button
               onClick={() => setTourOpen(true)}
               className="mt-1 w-full flex items-center gap-2 px-3 py-2 text-sm text-warm-gray-600 hover:bg-cream-100 rounded transition-colors"
@@ -304,12 +329,21 @@ export default function DashboardLayout({
               </svg>
               Take a tour
             </button>
-            <button
-              onClick={signOut}
-              className="mt-1 w-full px-3 py-2 text-sm text-warm-gray-600 hover:bg-cream-100 rounded transition-colors"
-            >
-              Sign Out
-            </button>
+
+            {/* Changelog link */}
+            {hasPermission(user.role, 'changelog:view') && (
+              <Link
+                href="/dashboard/changelog"
+                className="mt-1 flex items-center gap-2 px-3 py-2 text-sm text-warm-gray-600 hover:bg-cream-100 rounded transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h4" />
+                </svg>
+                Change Log
+              </Link>
+            )}
           </div>
         </div>
       </aside>

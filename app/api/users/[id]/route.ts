@@ -10,9 +10,9 @@ const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
   role: z.enum(USER_ROLE_VALUES).optional(),
   roleOptionId: z.string().uuid().nullable().optional(),
-  organization: z.string().optional(),
-  phoneNumber: z.string().optional(),
-  jobTitle: z.string().optional(),
+  organization: z.string().nullable().optional(),
+  phoneNumber: z.string().nullable().optional(),
+  jobTitle: z.string().nullable().optional(),
   isActive: z.boolean().optional(),
 })
 

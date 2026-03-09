@@ -192,6 +192,7 @@ export async function POST(request: NextRequest) {
       ? {
           schoolOfAttendance: data.schoolSite || null,
           leaRepresentativeName: data.leaAdminName,
+          submittedByEmail: data.leaAdminEmail || null,
           formMetadata: {
             lea: data.lea,
             schoolSite: data.schoolSite,
