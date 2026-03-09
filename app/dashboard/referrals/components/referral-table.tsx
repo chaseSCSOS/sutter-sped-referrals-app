@@ -6,9 +6,19 @@ import { formatDistanceToNow } from 'date-fns'
 
 interface ReferralTableProps {
   referrals: any[]
+  preset?: string
+  showSyncColumns?: boolean
+  isStaff?: boolean
 }
 
-export default function ReferralTable({ referrals }: ReferralTableProps) {
+function CumStatusBadge({ referral }: { referral: any }) {
+  if (referral.cumSentDate) return <span className="text-[10px] font-semibold text-sage-700 bg-sage-50 border border-sage-200 px-1.5 py-0.5 rounded-full">Sent</span>
+  if (referral.cumReceivedDate) return <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded-full">Received</span>
+  if (referral.cumRequestedDate) return <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded-full">Requested</span>
+  return <span className="text-[10px] text-warm-gray-400">—</span>
+}
+
+export default function ReferralTable({ referrals, preset, showSyncColumns = false, isStaff = false }: ReferralTableProps) {
   const getUrgencyColor = (deadlineDate: Date) => {
     const daysUntil = Math.ceil((new Date(deadlineDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
     if (daysUntil < 0) return 'text-coral-600'
@@ -77,6 +87,26 @@ export default function ReferralTable({ referrals }: ReferralTableProps) {
               <th className="px-3 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wide">
                 Deadline
               </th>
+              {isStaff && (
+                <th className="px-3 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wide">
+                  CUM
+                </th>
+              )}
+              {isStaff && (
+                <th className="px-3 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wide">
+                  DOR
+                </th>
+              )}
+              {isStaff && (
+                <th className="px-3 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wide">
+                  Referring Party
+                </th>
+              )}
+              {showSyncColumns && (
+                <th className="px-3 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wide">
+                  SEIS / Aeries
+                </th>
+              )}
               <th className="px-3 py-3 text-left text-xs font-medium text-stone-600 uppercase tracking-wide">
                 Submitted By
               </th>
@@ -140,6 +170,29 @@ export default function ReferralTable({ referrals }: ReferralTableProps) {
                     {Math.ceil((new Date(referral.deadlineDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days
                   </div>
                 </td>
+                {isStaff && (
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <CumStatusBadge referral={referral} />
+                  </td>
+                )}
+                {isStaff && (
+                  <td className="px-3 py-3">
+                    <div className="text-xs text-warm-gray-700 max-w-[120px] truncate">{referral.districtOfResidence || '—'}</div>
+                  </td>
+                )}
+                {isStaff && (
+                  <td className="px-3 py-3">
+                    <div className="text-xs text-warm-gray-700 max-w-[120px] truncate">{referral.referringParty || '—'}</div>
+                  </td>
+                )}
+                {showSyncColumns && (
+                  <td className="px-3 py-3 whitespace-nowrap">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${referral.inSEIS ? 'bg-sage-50 text-sage-700 border-sage-200' : 'bg-cream-50 text-warm-gray-400 border-cream-200'}`}>SEIS</span>
+                      <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border ${referral.inAeries ? 'bg-sage-50 text-sage-700 border-sage-200' : 'bg-cream-50 text-warm-gray-400 border-cream-200'}`}>Aeries</span>
+                    </div>
+                  </td>
+                )}
                 <td className="px-3 py-3">
                   <div className="text-sm text-warm-gray-700 max-w-xs truncate">
                     {referral.submittedByName || referral.submittedByEmail}

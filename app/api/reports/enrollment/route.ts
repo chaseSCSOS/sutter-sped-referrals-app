@@ -111,8 +111,10 @@ export async function GET(request: NextRequest) {
       stats.bySilo[siloKey] = (stats.bySilo[siloKey] || 0) + 1
 
       // Count by placement type
-      stats.byPlacementType[referral.placementType] =
-        (stats.byPlacementType[referral.placementType] || 0) + 1
+      if (referral.placementType) {
+        stats.byPlacementType[referral.placementType] =
+          (stats.byPlacementType[referral.placementType] || 0) + 1
+      }
     })
 
     return NextResponse.json({

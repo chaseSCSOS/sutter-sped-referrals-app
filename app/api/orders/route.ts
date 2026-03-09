@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { generateOrderNumber } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/server'
 import { orderSchema } from '@/lib/validation/order'
-import type { OrderStatus } from '@prisma/client'
+import type { OrderStatus, OrderType } from '@prisma/client'
 import { sendOrderSubmittedToStaff, sendOrderSubmittedToRequestor, getEmailSettings } from '@/lib/email'
 
 export async function POST(request: NextRequest) {
@@ -32,12 +32,30 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json()
 
-    // Validate request body
-    const validatedData = orderSchema.parse(body)
+    const isProtocol = body.orderType === 'PROTOCOL_ASSESSMENT'
+
+    // For supply orders use Zod schema; for protocol orders validate manually
+    let schoolSite: string
+    let justification: string
+    let items: Array<{ itemName: string; itemLink?: string; estimatedPrice: number; quantity: number; assessmentTestId?: string }>
+
+    if (isProtocol) {
+      if (!body.schoolSite?.trim()) return NextResponse.json({ error: 'School/site is required' }, { status: 400 })
+      if (!body.justification?.trim() || body.justification.trim().length < 20) return NextResponse.json({ error: 'Justification must be at least 20 characters' }, { status: 400 })
+      if (!Array.isArray(body.items) || body.items.length === 0) return NextResponse.json({ error: 'At least one item is required' }, { status: 400 })
+      schoolSite = body.schoolSite.trim()
+      justification = body.justification.trim()
+      items = body.items
+    } else {
+      const validatedData = orderSchema.parse(body)
+      schoolSite = validatedData.schoolSite
+      justification = validatedData.justification
+      items = validatedData.items
+    }
 
     // Calculate total estimated price
-    const totalEstimatedPrice = validatedData.items.reduce(
-      (sum, item) => sum + item.estimatedPrice * item.quantity,
+    const totalEstimatedPrice = items.reduce(
+      (sum, item) => sum + (Number(item.estimatedPrice) || 0) * (Number(item.quantity) || 1),
       0
     )
 
@@ -49,16 +67,19 @@ export async function POST(request: NextRequest) {
       data: {
         orderNumber,
         status: 'NEW',
-        schoolSite: validatedData.schoolSite,
-        justification: validatedData.justification,
+        orderType: isProtocol ? 'PROTOCOL_ASSESSMENT' : 'SUPPLY',
+        assessmentCategoryId: isProtocol ? (body.assessmentCategoryId || null) : null,
+        schoolSite,
+        justification,
         totalEstimatedPrice,
         requestorId: user.id,
         items: {
-          create: validatedData.items.map((item) => ({
+          create: items.map((item) => ({
             itemName: item.itemName,
             itemLink: item.itemLink || null,
-            estimatedPrice: item.estimatedPrice,
-            quantity: item.quantity,
+            estimatedPrice: Number(item.estimatedPrice) || 0,
+            quantity: Number(item.quantity) || 1,
+            assessmentTestId: item.assessmentTestId || null,
           })),
         },
       },
@@ -153,6 +174,7 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const status = searchParams.get('status') as OrderStatus | null
+    const orderType = searchParams.get('orderType') as OrderType | null
     const search = searchParams.get('search')
     const scope = searchParams.get('scope')
     const page = parseInt(searchParams.get('page') || '1')
@@ -170,6 +192,11 @@ export async function GET(request: NextRequest) {
     // Apply status filter
     if (status) {
       where.status = status
+    }
+
+    // Apply order type filter
+    if (orderType) {
+      where.orderType = orderType
     }
 
     // Apply search filter

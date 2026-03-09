@@ -8,6 +8,9 @@ import ReferralActions from '../components/referral-actions'
 import ChecklistActions from '../components/checklist-actions'
 import AssignStaff from '../components/assign-staff'
 import DetailHeader from '../components/detail-header'
+import ProgramClassificationPanel from '../components/program-classification-panel'
+import CumWorkflowPanel from '../components/cum-workflow-panel'
+import SystemSyncPanel from '../components/system-sync-panel'
 
 interface ReferralDetailPageProps {
   params: Promise<{ id: string }>
@@ -80,6 +83,18 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
   }
 
   const canUpdate = hasPermission(user.role, 'referrals:update')
+  const canWriteOperational = hasPermission(user.role, 'referrals:write-operational')
+  const canManageCum = hasPermission(user.role, 'referrals:manage-cum')
+  const canManageSync = hasPermission(user.role, 'referrals:manage-sync')
+
+  // Fetch staff list for CUM processed-by dropdown (SPED_STAFF+)
+  const staffList = canManageCum
+    ? await prisma.user.findMany({
+        where: { role: { in: ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'] } },
+        select: { id: true, name: true },
+        orderBy: { name: 'asc' },
+      })
+    : []
 
   const checklistLabelMap: Record<string, string> = {
     STUDENT_REGISTRATION: 'Student Registration Form',
@@ -149,7 +164,7 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
         <div className="bg-white/80 backdrop-blur rounded-2xl border border-cream-200 px-5 py-4">
           <p className="text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-1">Disability</p>
           <p className="text-base font-bold text-warm-gray-900 truncate">
-            {DISABILITY_LABELS[referral.primaryDisability] || referral.primaryDisability}
+            {referral.primaryDisability ? (DISABILITY_LABELS[referral.primaryDisability] || referral.primaryDisability) : '—'}
           </p>
         </div>
         <div className="bg-white/80 backdrop-blur rounded-2xl border border-cream-200 px-5 py-4">
@@ -339,7 +354,7 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
               <div className="col-span-2">
                 <p className="text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-0.5">Primary Disability</p>
                 <p className="text-warm-gray-900 font-medium">
-                  {DISABILITY_LABELS[referral.primaryDisability] || referral.primaryDisability}
+                  {referral.primaryDisability ? (DISABILITY_LABELS[referral.primaryDisability] || referral.primaryDisability) : '—'}
                   <span className="text-warm-gray-400 text-xs ml-1.5">({referral.primaryDisability})</span>
                 </p>
               </div>
@@ -375,11 +390,11 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
             <div className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm">
               <div>
                 <p className="text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-0.5">SPED Entry</p>
-                <p className="text-warm-gray-900 font-medium">{new Date(referral.spedEntryDate).toLocaleDateString()}</p>
+                <p className="text-warm-gray-900 font-medium">{referral.spedEntryDate ? new Date(referral.spedEntryDate).toLocaleDateString() : '—'}</p>
               </div>
               <div>
                 <p className="text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-0.5">Triennial Due</p>
-                <p className="text-warm-gray-900 font-medium">{new Date(referral.triennialDue).toLocaleDateString()}</p>
+                <p className="text-warm-gray-900 font-medium">{referral.triennialDue ? new Date(referral.triennialDue).toLocaleDateString() : '—'}</p>
               </div>
               {referral.currentIepDate && (
                 <div>
@@ -467,6 +482,27 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
           </div>
         </section>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          ZONE 2.5: Operational Panels — 3-column grid (staff only)
+          ═══════════════════════════════════════════════════════════════ */}
+      {canWriteOperational && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <ProgramClassificationPanel
+            referral={serializedReferral}
+            canUpdate={canWriteOperational}
+          />
+          <CumWorkflowPanel
+            referral={serializedReferral}
+            canManage={canManageCum}
+            staffList={staffList}
+          />
+          <SystemSyncPanel
+            referral={serializedReferral}
+            canManage={canManageSync}
+          />
+        </div>
+      )}
 
       {/* ═══════════════════════════════════════════════════════════════
           ZONE 3: Services — full width

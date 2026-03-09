@@ -488,18 +488,123 @@ export async function sendUserPasswordResetEmail(data: UserAccessEmailData) {
 }
 
 // ---------------------------------------------------------------------------
+// CUM Records workflow emails
+// ---------------------------------------------------------------------------
+
+interface CumReferralData {
+  id: string
+  studentName: string
+  dateOfBirth: Date | string
+  lastPlacementSchool?: string | null
+  lastPlacementDistrict?: string | null
+  confirmationNumber: string
+}
+
+export function buildCumRequestEmailDraft(referral: CumReferralData): Record<string, string> {
+  const school = referral.lastPlacementSchool || '[UNKNOWN SCHOOL]'
+  const district = referral.lastPlacementDistrict || '[UNKNOWN DISTRICT]'
+  const dob = new Date(referral.dateOfBirth as string).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+
+  const subject = `CUM Record Request — ${referral.studentName}`
+  const body = `Dear Records Department,
+
+This letter is to request the Cumulative (CUM) records for the following student who is transferring to Sutter County Superintendent of Schools (SCSOS) Special Education program:
+
+Student Name: ${referral.studentName}
+Date of Birth: ${dob}
+Previous School: ${school}
+Previous District: ${district}
+
+Please forward all available CUM records, including academic records, IEP documents, assessment reports, and any other relevant educational history, to:
+
+Sutter County Superintendent of Schools
+Special Education Department
+970 Klamath Lane
+Yuba City, CA 95993
+
+If you have any questions, please contact our office.
+
+Thank you for your prompt assistance.
+
+SCSOS Special Education Department`
+
+  return { subject, body, toSchool: school, toDistrict: district }
+}
+
+export async function sendCumRequestEmail(
+  to: string,
+  subject: string,
+  body: string,
+  referralId: string
+): Promise<void> {
+  const html = emailWrapper(`
+    <p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#1e3a2f;">CUM Record Request</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b6057;">The following CUM record request has been sent on behalf of SCSOS Special Education.</p>
+    <div style="background:#f9f7f4;border:1px solid #e8e3db;border-radius:8px;padding:20px 24px;margin-bottom:24px;white-space:pre-wrap;font-size:14px;color:#2d2926;line-height:1.6;">${escapeHtml(body)}</div>
+    ${ctaButton('View Referral', `${APP_URL}/dashboard/referrals/${referralId}`)}
+  `)
+  await sendMail(to, subject, html)
+}
+
+export async function sendSeisAeriesReminder(
+  to: string | string[],
+  referralId: string,
+  studentName: string,
+  confirmationNumber: string,
+  missingItems: string[]
+): Promise<void> {
+  const itemList = missingItems.map(item => `<li style="margin-bottom:4px;">${item}</li>`).join('')
+  const html = emailWrapper(`
+    <p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#1e3a2f;">SEIS / Aeries Entry Reminder</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b6057;">A student requires entry into the following systems:</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#f9f7f4;border:1px solid #e8e3db;border-radius:8px;margin-bottom:24px;">
+      ${infoRow('Student', studentName)}
+      ${infoRow('Confirmation #', confirmationNumber)}
+    </table>
+    <ul style="margin:0 0 24px;padding-left:20px;color:#4a4039;font-size:14px;">${itemList}</ul>
+    ${ctaButton('Open Referral', `${APP_URL}/dashboard/referrals/${referralId}`)}
+  `)
+  await sendMail(to, `Action Required: SEIS/Aeries Entry — ${studentName}`, html)
+}
+
+export async function sendOverdueCumAlert(
+  to: string | string[],
+  referralId: string,
+  studentName: string,
+  confirmationNumber: string,
+  requestedDate: Date,
+  daysOverdue: number
+): Promise<void> {
+  const html = emailWrapper(`
+    <p style="margin:0 0 6px;font-size:22px;font-weight:800;color:#1e3a2f;">CUM Request Overdue</p>
+    <p style="margin:0 0 24px;font-size:14px;color:#6b6057;">A CUM records request has not received a response.</p>
+    <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;margin-bottom:24px;">
+      ${infoRow('Student', studentName)}
+      ${infoRow('Confirmation #', confirmationNumber)}
+      ${infoRow('Requested On', requestedDate.toLocaleDateString())}
+      ${infoRow('Days Overdue', String(daysOverdue))}
+    </table>
+    <p style="margin:0 0 24px;font-size:14px;color:#4a4039;">Please follow up with the previous school to obtain the CUM records.</p>
+    ${ctaButton('View Referral', `${APP_URL}/dashboard/referrals/${referralId}`)}
+  `)
+  await sendMail(to, `Overdue CUM Request — ${studentName} (${daysOverdue} days)`, html)
+}
+
+// ---------------------------------------------------------------------------
 // Settings helper — load notify emails from DB
 // ---------------------------------------------------------------------------
 
-export async function getEmailSettings(): Promise<{ orderNotifyEmails: string[]; referralNotifyEmails: string[] }> {
+export async function getEmailSettings(): Promise<{ orderNotifyEmails: string[]; referralNotifyEmails: string[]; cumReminderDays: number; seisAeriesReminderDays: number }> {
   try {
     const { prisma } = await import('@/lib/prisma')
-    const settings = await prisma.emailSettings.findFirst()
+    const settings = await (prisma as any).emailSettings.findFirst()
     return {
       orderNotifyEmails: settings?.orderNotifyEmails ?? [],
       referralNotifyEmails: settings?.referralNotifyEmails ?? [],
+      cumReminderDays: settings?.cumReminderDays ?? 10,
+      seisAeriesReminderDays: settings?.seisAeriesReminderDays ?? 5,
     }
   } catch {
-    return { orderNotifyEmails: [], referralNotifyEmails: [] }
+    return { orderNotifyEmails: [], referralNotifyEmails: [], cumReminderDays: 10, seisAeriesReminderDays: 5 }
   }
 }

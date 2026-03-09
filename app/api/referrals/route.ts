@@ -5,6 +5,7 @@ import { uploadFile } from '@/lib/storage'
 import { generateConfirmationNumber, calculateDeadline } from '@/lib/utils'
 import { hasPermission } from '@/lib/auth/permissions'
 import { sendReferralSubmissionEmail, sendReferralSubmittedToStaff, getEmailSettings } from '@/lib/email'
+import type { ChecklistItemType } from '@prisma/client'
 
 type ChecklistRuleInput = {
   grade?: string
@@ -14,11 +15,11 @@ const PRESCHOOL_GRADES = new Set(['PreK', 'Preschool'])
 const HIGH_SCHOOL_GRADES = new Set(['9', '10', '11', '12'])
 
 function isPreschoolGrade(grade?: string) {
-  return Boolean(grade) && PRESCHOOL_GRADES.has(grade)
+  return Boolean(grade) && PRESCHOOL_GRADES.has(grade!)
 }
 
 function isHighSchoolGrade(grade?: string) {
-  return Boolean(grade) && HIGH_SCHOOL_GRADES.has(grade)
+  return Boolean(grade) && HIGH_SCHOOL_GRADES.has(grade!)
 }
 
 const interimChecklistConfig = [
@@ -147,7 +148,7 @@ export async function POST(request: NextRequest) {
           ethnicity: data.ethnicity,
           residency: data.residency,
           placementType: data.placementType,
-          silo: data.silo || null,
+          silo: (data.silo || null) as any,
           primaryDisability,
           disabilities: data.disabilities,
           spedEntryDate: new Date(data.spedEntryDate),
@@ -229,7 +230,7 @@ export async function POST(request: NextRequest) {
         ...interimFields,
         ...levelIIFields,
         ...dhhFields,
-      },
+      } as any,
     })
 
     const uploadedKeys = new Set<string>()
@@ -266,7 +267,7 @@ export async function POST(request: NextRequest) {
         return prisma.documentChecklistItem.create({
           data: {
             referralId: referral.id,
-            type: item.type,
+            type: item.type as ChecklistItemType,
             required: isRequired,
             status,
           },
@@ -402,6 +403,11 @@ export async function GET(request: NextRequest) {
     const id = searchParams.get('id')
     const status = searchParams.get('status')
     const search = searchParams.get('search')
+    const programTrack = searchParams.get('programTrack')
+    const districtOfResidence = searchParams.get('districtOfResidence')
+    const cumStatus = searchParams.get('cumStatus') // none | requested | received | sent
+    const inSEISParam = searchParams.get('inSEIS')
+    const inAeriesParam = searchParams.get('inAeries')
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
 
@@ -446,6 +452,36 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       whereClause.status = status
+    }
+
+    if (programTrack) {
+      whereClause.programTrack = programTrack
+    }
+
+    if (districtOfResidence) {
+      whereClause.districtOfResidence = { contains: districtOfResidence, mode: 'insensitive' }
+    }
+
+    if (cumStatus) {
+      if (cumStatus === 'none') {
+        whereClause.cumRequestedDate = null
+      } else if (cumStatus === 'requested') {
+        whereClause.cumRequestedDate = { not: null }
+        whereClause.cumReceivedDate = null
+      } else if (cumStatus === 'received') {
+        whereClause.cumReceivedDate = { not: null }
+        whereClause.cumSentDate = null
+      } else if (cumStatus === 'sent') {
+        whereClause.cumSentDate = { not: null }
+      }
+    }
+
+    if (inSEISParam !== null && inSEISParam !== '') {
+      whereClause.inSEIS = inSEISParam === 'true'
+    }
+
+    if (inAeriesParam !== null && inAeriesParam !== '') {
+      whereClause.inAeries = inAeriesParam === 'true'
     }
 
     if (search) {

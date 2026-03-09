@@ -33,7 +33,7 @@ export default function ReferralsPage() {
       </div>
 
       <div className="animate-fade-in-up animation-delay-100">
-        <ReferralList />
+        <ReferralList isStaff={['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'].includes(user.role)} />
       </div>
     </div>
   )

@@ -19,11 +19,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const settings = await prisma.emailSettings.findFirst()
+    const settings = await (prisma as any).emailSettings.findFirst()
 
     return NextResponse.json({
       orderNotifyEmails: settings?.orderNotifyEmails ?? [],
       referralNotifyEmails: settings?.referralNotifyEmails ?? [],
+      cumReminderDays: settings?.cumReminderDays ?? 10,
+      seisAeriesReminderDays: settings?.seisAeriesReminderDays ?? 5,
     })
   } catch (error) {
     console.error('Error fetching email settings:', error)
@@ -49,31 +51,31 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { orderNotifyEmails, referralNotifyEmails } = body
+    const { orderNotifyEmails, referralNotifyEmails, cumReminderDays, seisAeriesReminderDays } = body
 
     if (!Array.isArray(orderNotifyEmails) || !Array.isArray(referralNotifyEmails)) {
       return NextResponse.json({ error: 'Invalid request body' }, { status: 400 })
     }
 
-    const existing = await prisma.emailSettings.findFirst()
+    const existing = await (prisma as any).emailSettings.findFirst()
+
+    const sharedData: Record<string, any> = {
+      orderNotifyEmails,
+      referralNotifyEmails,
+      updatedById: user.id,
+    }
+    if (typeof cumReminderDays === 'number') sharedData.cumReminderDays = cumReminderDays
+    if (typeof seisAeriesReminderDays === 'number') sharedData.seisAeriesReminderDays = seisAeriesReminderDays
 
     let settings
     if (existing) {
-      settings = await prisma.emailSettings.update({
+      settings = await (prisma as any).emailSettings.update({
         where: { id: existing.id },
-        data: {
-          orderNotifyEmails,
-          referralNotifyEmails,
-          updatedById: user.id,
-        },
+        data: sharedData,
       })
     } else {
-      settings = await prisma.emailSettings.create({
-        data: {
-          orderNotifyEmails,
-          referralNotifyEmails,
-          updatedById: user.id,
-        },
+      settings = await (prisma as any).emailSettings.create({
+        data: sharedData,
       })
     }
 

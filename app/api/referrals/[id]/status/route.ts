@@ -45,6 +45,14 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Status is required' }, { status: 400 })
     }
 
+    // NOT_ENROLLING and WITHDRAWN require a reason
+    if ((status === 'NOT_ENROLLING' || status === 'WITHDRAWN') && !reason) {
+      return NextResponse.json(
+        { error: `A reason is required when setting status to ${status}` },
+        { status: 400 }
+      )
+    }
+
     // Fetch current referral
     const referral = await prisma.referral.findUnique({
       where: { id },

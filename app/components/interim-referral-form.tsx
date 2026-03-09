@@ -33,11 +33,11 @@ const PRESCHOOL_GRADES = new Set(['PreK', 'Preschool']);
 const HIGH_SCHOOL_GRADES = new Set(['9', '10', '11', '12']);
 
 function isPreschoolGrade(selectedGrade?: string) {
-  return Boolean(selectedGrade) && PRESCHOOL_GRADES.has(selectedGrade);
+  return Boolean(selectedGrade) && PRESCHOOL_GRADES.has(selectedGrade!);
 }
 
 function isHighSchoolGrade(selectedGrade?: string) {
-  return Boolean(selectedGrade) && HIGH_SCHOOL_GRADES.has(selectedGrade);
+  return Boolean(selectedGrade) && HIGH_SCHOOL_GRADES.has(selectedGrade!);
 }
 
 export default function InterimReferralForm() {

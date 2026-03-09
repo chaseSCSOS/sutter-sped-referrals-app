@@ -8,6 +8,14 @@ export const PERMISSIONS = {
   'referrals:update': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
   'referrals:delete': ['ADMIN', 'SUPER_ADMIN'],
 
+  // Operational fields — internal staff only; never exposed to external submitters
+  'referrals:write-operational': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'referrals:manage-cum': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'referrals:manage-sync': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+
+  // Settings
+  'settings:manage': ['ADMIN', 'SUPER_ADMIN'],
+
   // Order permissions
   'orders:submit': ['TEACHER', 'SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
   'orders:view-own': ['TEACHER', 'SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
@@ -16,11 +24,18 @@ export const PERMISSIONS = {
   'orders:update': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
   'orders:delete': ['ADMIN', 'SUPER_ADMIN'],
 
+  // Assessment catalog permissions
+  'assessments:submit': ['TEACHER', 'SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'assessments:manage': ['ADMIN', 'SUPER_ADMIN'],
+
   // User permissions
   'users:create': ['ADMIN', 'SUPER_ADMIN'],
   'users:view': ['ADMIN', 'SUPER_ADMIN'],
   'users:update': ['ADMIN', 'SUPER_ADMIN'],
   'users:delete': ['SUPER_ADMIN'],
+
+  // Dashboard changelog permissions
+  'changelog:view': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
 } as const
 
 export type Permission = keyof typeof PERMISSIONS

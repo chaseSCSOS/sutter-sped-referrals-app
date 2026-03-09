@@ -59,7 +59,28 @@ model Referral {
   placementType               PlacementType?
 
   // Organizational Grouping
-  silo                        String?
+  silo                        Silo?
+
+  // Program Classification (internal staff fields — not set by external submitters)
+  programTrack              ProgramTrack   @default(GENERAL)
+  districtOfResidence       String?
+  referringParty            String?
+  dateStudentStartedSchool  DateTime?
+  serviceProvider           String?
+
+  // CUM Records Workflow
+  cumRequestedDate          DateTime?
+  cumReceivedDate           DateTime?
+  cumSentDate               DateTime?
+  cumProcessedByStaffId     String?
+  cumProcessedByStaff       User?          @relation("CumProcessedByStaff", fields: [cumProcessedByStaffId], references: [id])
+  cumNotes                  String?
+
+  // External System Sync (SCIP and VIP programs)
+  inSEIS                    Boolean        @default(false)
+  inSEISDate                DateTime?
+  inAeries                  Boolean        @default(false)
+  inAeriesDate              DateTime?
 
   // Disability Information
   primaryDisability           String?
@@ -119,6 +140,9 @@ model Referral {
   @@index([deadlineDate])
   @@index([confirmationNumber])
   @@index([submittedByUserId])
+  @@index([programTrack])
+  @@index([districtOfResidence])
+  @@index([silo])
 }
 
 model Document {
@@ -265,6 +289,7 @@ model User {
   // Relationships
   referralsAssigned Referral[]              @relation("AssignedReferrals")
   referralsSubmitted Referral[]             @relation("SubmittedReferrals")
+  cumProcessedReferrals Referral[]          @relation("CumProcessedByStaff")
   ordersRequested   Order[]                 @relation("OrderRequestor")
   ordersApproved    Order[]                 @relation("OrderApprover")
   orderStatusHistory OrderStatusHistory[]   @relation("OrderStatusHistoryChangedBy")
@@ -410,6 +435,25 @@ enum ReferralStatus {
   REJECTED
   ON_HOLD
   COMPLETED
+  NOT_ENROLLING
+  WITHDRAWN
+}
+
+enum ProgramTrack {
+  GENERAL
+  BEHAVIOR
+  DHH
+  SCIP
+  VIP
+}
+
+enum Silo {
+  ASD
+  SD
+  NC
+  DHH
+  MD
+  OT
 }
 
 enum PlacementType {
@@ -486,11 +530,13 @@ enum ChecklistStatus {
 }
 
 model EmailSettings {
-  id                   String   @id @default(cuid())
-  orderNotifyEmails    String[]
-  referralNotifyEmails String[]
-  updatedAt            DateTime @updatedAt
-  updatedById          String?
+  id                       String   @id @default(cuid())
+  orderNotifyEmails        String[]
+  referralNotifyEmails     String[]
+  cumReminderDays          Int      @default(10)
+  seisAeriesReminderDays   Int      @default(5)
+  updatedAt                DateTime @updatedAt
+  updatedById              String?
 }
 
 model AssessmentCategory {

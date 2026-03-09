@@ -19,6 +19,7 @@ export default function OrderList({ initialOrders = [], ownOnly = false }: Order
   const [filters, setFilters] = useState({
     status: '',
     search: '',
+    orderType: '',
   })
 
   useEffect(() => {
@@ -27,7 +28,7 @@ export default function OrderList({ initialOrders = [], ownOnly = false }: Order
 
   useEffect(() => {
     setPage(1)
-  }, [filters.status, filters.search])
+  }, [filters.status, filters.search, filters.orderType])
 
   async function fetchOrders() {
     setLoading(true)
@@ -35,6 +36,7 @@ export default function OrderList({ initialOrders = [], ownOnly = false }: Order
       const params = new URLSearchParams()
       if (filters.status) params.set('status', filters.status)
       if (filters.search) params.set('search', filters.search)
+      if (filters.orderType) params.set('orderType', filters.orderType)
       if (ownOnly) params.set('scope', 'own')
       params.set('page', String(page))
       params.set('limit', '20')
@@ -76,7 +78,7 @@ export default function OrderList({ initialOrders = [], ownOnly = false }: Order
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-4">
+      <div className="bg-white rounded-xl shadow-sm border border-cream-200 p-4 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_200px] gap-3">
           <div className="relative">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-warm-gray-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -101,6 +103,33 @@ export default function OrderList({ initialOrders = [], ownOnly = false }: Order
               <option key={status.value} value={status.value}>{status.label}</option>
             ))}
           </select>
+        </div>
+
+        {/* Order type filter */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-warm-gray-500">Type:</span>
+          {[
+            { value: '', label: 'All' },
+            { value: 'SUPPLY', label: 'Supply' },
+            { value: 'PROTOCOL_ASSESSMENT', label: 'Protocol' },
+          ].map(opt => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => setFilters(prev => ({ ...prev, orderType: opt.value }))}
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition-colors border ${
+                filters.orderType === opt.value
+                  ? opt.value === 'PROTOCOL_ASSESSMENT'
+                    ? 'bg-violet-600 text-white border-violet-600'
+                    : opt.value === 'SUPPLY'
+                    ? 'bg-sky-600 text-white border-sky-600'
+                    : 'bg-warm-gray-800 text-white border-warm-gray-800'
+                  : 'bg-white text-warm-gray-600 border-cream-200 hover:bg-cream-50'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -156,17 +185,27 @@ export default function OrderList({ initialOrders = [], ownOnly = false }: Order
               {sortedOrders.map((order: any) => {
                 const itemCount = order.items?.length || 0
                 const displayTitle = itemCount === 1 ? order.items[0].itemName : `${itemCount} Items`
+                const isProtocol = order.orderType === 'PROTOCOL_ASSESSMENT'
                 return (
                   <a
                     key={order.id}
                     href={`/dashboard/orders/${order.id}`}
-                    className="group flex md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)] gap-3 items-center px-5 py-4 hover:bg-sky-50/50 border-l-[3px] border-transparent hover:border-sky-400 transition-all"
+                    className={`group flex md:grid md:grid-cols-[minmax(0,2.2fr)_minmax(0,1.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,0.85fr)_minmax(0,0.85fr)] gap-3 items-center px-5 py-4 hover:bg-sky-50/50 border-l-[3px] transition-all ${
+                      isProtocol ? 'border-violet-300 hover:border-violet-500' : 'border-transparent hover:border-sky-400'
+                    }`}
                   >
                     {/* Order name + # */}
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-warm-gray-900 truncate group-hover:text-sky-700 transition-colors">
-                        {displayTitle}
-                      </p>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <p className="text-sm font-semibold text-warm-gray-900 truncate group-hover:text-sky-700 transition-colors">
+                          {displayTitle}
+                        </p>
+                        {isProtocol && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700 flex-shrink-0">
+                            Protocol
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-warm-gray-400 mt-0.5 font-mono">#{order.orderNumber}</p>
                       {/* Mobile: extra info */}
                       <div className="flex items-center gap-2 mt-1.5 md:hidden">

@@ -5,6 +5,7 @@ interface OrderCardProps {
   order: {
     id: string
     orderNumber: string
+    orderType?: string
     status: any
     totalEstimatedPrice: any
     schoolSite: string
@@ -30,9 +31,14 @@ export default function OrderCard({ order }: OrderCardProps) {
     >
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center gap-2 mb-2 flex-wrap">
             <h3 className="text-base font-medium text-warm-gray-900">{displayTitle}</h3>
             <OrderStatusBadge status={order.status} />
+            {order.orderType === 'PROTOCOL_ASSESSMENT' && (
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
+                Protocol
+              </span>
+            )}
           </div>
           <p className="text-sm text-warm-gray-600">
             Order: {order.orderNumber} • Site: {order.schoolSite}

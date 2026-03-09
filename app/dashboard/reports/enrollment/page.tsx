@@ -348,6 +348,124 @@ export default function EnrollmentReportPage() {
           </div>
         </div>
       </div>
+
+      {/* Caseload section */}
+      <CaseloadSection referrals={reportData.referrals} />
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Caseload / CUM funnel / SEIS compliance section
+// ---------------------------------------------------------------------------
+
+function CaseloadSection({ referrals }: { referrals: any[] }) {
+  const tracks = ['GENERAL', 'BEHAVIOR', 'DHH', 'SCIP', 'VIP']
+
+  const byTrack = tracks.map(track => {
+    const group = referrals.filter((r: any) => (r.programTrack || 'GENERAL') === track)
+    const cumRequested = group.filter((r: any) => r.cumRequestedDate).length
+    const cumReceived = group.filter((r: any) => r.cumReceivedDate).length
+    const cumSent = group.filter((r: any) => r.cumSentDate).length
+    const inSEIS = group.filter((r: any) => r.inSEIS).length
+    const inAeries = group.filter((r: any) => r.inAeries).length
+    return { track, total: group.length, cumRequested, cumReceived, cumSent, inSEIS, inAeries }
+  }).filter(g => g.total > 0)
+
+  const totalCumRequested = referrals.filter((r: any) => r.cumRequestedDate).length
+  const totalCumReceived = referrals.filter((r: any) => r.cumReceivedDate).length
+  const totalCumSent = referrals.filter((r: any) => r.cumSentDate).length
+  const totalSEIS = referrals.filter((r: any) => r.inSEIS).length
+  const totalAeries = referrals.filter((r: any) => r.inAeries).length
+  const total = referrals.length
+
+  function pct(n: number, d: number) {
+    if (!d) return '—'
+    return `${Math.round((n / d) * 100)}%`
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Caseload by program track */}
+      <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+        <h3 className="text-base font-semibold text-warm-gray-900 mb-3">Caseload by Program Track</h3>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-xs text-warm-gray-500 uppercase tracking-wider border-b border-cream-200">
+                <th className="text-left pb-2 pr-4">Track</th>
+                <th className="text-right pb-2 px-4">Total</th>
+                <th className="text-right pb-2 px-4">CUM Req.</th>
+                <th className="text-right pb-2 px-4">CUM Recv.</th>
+                <th className="text-right pb-2 px-4">CUM Sent</th>
+                <th className="text-right pb-2 px-4">In SEIS</th>
+                <th className="text-right pb-2 pl-4">In Aeries</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-cream-100">
+              {byTrack.map(row => (
+                <tr key={row.track}>
+                  <td className="py-2 pr-4 font-medium text-warm-gray-900">{row.track}</td>
+                  <td className="py-2 px-4 text-right font-semibold">{row.total}</td>
+                  <td className="py-2 px-4 text-right text-amber-700">{row.cumRequested} <span className="text-warm-gray-400 text-xs">({pct(row.cumRequested, row.total)})</span></td>
+                  <td className="py-2 px-4 text-right text-sky-700">{row.cumReceived} <span className="text-warm-gray-400 text-xs">({pct(row.cumReceived, row.total)})</span></td>
+                  <td className="py-2 px-4 text-right text-sage-700">{row.cumSent} <span className="text-warm-gray-400 text-xs">({pct(row.cumSent, row.total)})</span></td>
+                  <td className="py-2 px-4 text-right text-violet-700">{row.inSEIS} <span className="text-warm-gray-400 text-xs">({pct(row.inSEIS, row.total)})</span></td>
+                  <td className="py-2 pl-4 text-right text-teal-700">{row.inAeries} <span className="text-warm-gray-400 text-xs">({pct(row.inAeries, row.total)})</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* CUM funnel + SEIS/Aeries compliance side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-base font-semibold text-warm-gray-900 mb-3">CUM Records Funnel</h3>
+          <div className="space-y-3">
+            {[
+              { label: 'Requested', count: totalCumRequested, color: 'bg-amber-400' },
+              { label: 'Received', count: totalCumReceived, color: 'bg-sky-400' },
+              { label: 'Sent to School', count: totalCumSent, color: 'bg-sage-500' },
+            ].map(({ label, count, color }) => (
+              <div key={label}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-warm-gray-700 font-medium">{label}</span>
+                  <span className="font-semibold text-warm-gray-900">{count} <span className="text-warm-gray-400 font-normal text-xs">/ {total} ({pct(count, total)})</span></span>
+                </div>
+                <div className="h-2 bg-cream-100 rounded-full overflow-hidden">
+                  <div className={`h-full ${color} rounded-full transition-all`} style={{ width: total ? `${(count / total) * 100}%` : '0%' }} />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl border border-cream-200 shadow-sm p-4">
+          <h3 className="text-base font-semibold text-warm-gray-900 mb-3">SEIS / Aeries Compliance</h3>
+          <div className="space-y-4">
+            {[
+              { label: 'Entered in SEIS', count: totalSEIS, color: 'bg-violet-400' },
+              { label: 'Entered in Aeries', count: totalAeries, color: 'bg-teal-400' },
+            ].map(({ label, count, color }) => (
+              <div key={label}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-warm-gray-700 font-medium">{label}</span>
+                  <span className="font-semibold text-warm-gray-900">{count} <span className="text-warm-gray-400 font-normal text-xs">({pct(count, total)})</span></span>
+                </div>
+                <div className="h-2.5 bg-cream-100 rounded-full overflow-hidden">
+                  <div className={`h-full ${color} rounded-full transition-all`} style={{ width: total ? `${(count / total) * 100}%` : '0%' }} />
+                </div>
+              </div>
+            ))}
+            <div className="pt-2 border-t border-cream-100 text-xs text-warm-gray-500">
+              {total - totalSEIS > 0 && <p className="text-amber-600 font-medium">{total - totalSEIS} referral(s) not yet in SEIS</p>}
+              {total - totalAeries > 0 && <p className="text-amber-600 font-medium">{total - totalAeries} referral(s) not yet in Aeries</p>}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

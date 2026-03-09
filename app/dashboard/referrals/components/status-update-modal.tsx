@@ -10,7 +10,7 @@ interface StatusUpdateModalProps {
   onClose: () => void
 }
 
-const STATUSES: { value: ReferralStatus; label: string }[] = [
+const STATUSES: { value: string; label: string }[] = [
   { value: 'SUBMITTED', label: 'Submitted' },
   { value: 'UNDER_REVIEW', label: 'Under Review' },
   { value: 'MISSING_DOCUMENTS', label: 'Missing Documents' },
@@ -21,7 +21,11 @@ const STATUSES: { value: ReferralStatus; label: string }[] = [
   { value: 'REJECTED', label: 'Rejected' },
   { value: 'ON_HOLD', label: 'On Hold' },
   { value: 'COMPLETED', label: 'Completed' },
+  { value: 'NOT_ENROLLING', label: 'Not Enrolling' },
+  { value: 'WITHDRAWN', label: 'Withdrawn' },
 ]
+
+const REASON_REQUIRED_STATUSES = new Set(['REJECTED', 'NOT_ENROLLING', 'WITHDRAWN'])
 
 const COMMON_MISSING_DOCUMENTS = [
   'IEP (Individualized Education Program)',
@@ -37,7 +41,7 @@ const COMMON_MISSING_DOCUMENTS = [
 ]
 
 export default function StatusUpdateModal({ referralId, currentStatus, onClose }: StatusUpdateModalProps) {
-  const [status, setStatus] = useState<ReferralStatus>(currentStatus)
+  const [status, setStatus] = useState<string>(currentStatus as string)
   const [reason, setReason] = useState('')
   const [missingItems, setMissingItems] = useState<string[]>([])
   const [selectedCommonItems, setSelectedCommonItems] = useState<Set<string>>(new Set())
@@ -59,6 +63,12 @@ export default function StatusUpdateModal({ referralId, currentStatus, onClose }
     // For rejections, require either a reason OR missing items
     if (status === 'REJECTED' && !reason && allMissingItems.length === 0) {
       setError('Please provide a reason or select missing items for rejection')
+      return
+    }
+
+    // NOT_ENROLLING and WITHDRAWN require a reason
+    if ((status === 'NOT_ENROLLING' || status === 'WITHDRAWN') && !reason) {
+      setError('A reason is required for this status change')
       return
     }
 

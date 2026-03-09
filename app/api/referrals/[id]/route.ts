@@ -39,7 +39,7 @@ const updateReferralSchema = z.object({
 
   // Placement
   placementType: z.enum(['FRA', 'SDC']).optional(),
-  silo: z.string().nullable().optional(),
+  silo: z.enum(['ASD', 'SD', 'NC', 'DHH', 'MD', 'OT']).nullable().optional(),
 
   // Disability
   primaryDisability: z.string().optional(),
@@ -70,6 +70,13 @@ const updateReferralSchema = z.object({
   nonSeisIep: z.boolean().optional(),
   submittedByEmail: z.string().nullable().optional(),
   additionalComments: z.string().nullable().optional(),
+
+  // Operational fields (SPED_STAFF+ only)
+  programTrack: z.enum(['GENERAL', 'BEHAVIOR', 'DHH', 'SCIP', 'VIP']).optional(),
+  districtOfResidence: z.string().nullable().optional(),
+  referringParty: z.string().nullable().optional(),
+  dateStudentStartedSchool: z.string().nullable().optional(),
+  serviceProvider: z.string().nullable().optional(),
 })
 
 export async function PATCH(
@@ -108,6 +115,13 @@ export async function PATCH(
     const body = await request.json()
     const validatedData = updateReferralSchema.parse(body)
 
+    // Operational fields require elevated permission
+    const operationalFields = ['programTrack', 'districtOfResidence', 'referringParty', 'dateStudentStartedSchool', 'serviceProvider', 'silo']
+    const hasOperationalFields = operationalFields.some(f => (validatedData as Record<string, any>)[f] !== undefined)
+    if (hasOperationalFields && !hasPermission(user.role, 'referrals:write-operational')) {
+      return NextResponse.json({ error: 'Insufficient permissions to update operational fields' }, { status: 403 })
+    }
+
     // Convert date strings to Date objects where needed
     const updateData: Record<string, any> = {}
 
@@ -120,6 +134,7 @@ export async function PATCH(
       'triennialDue',
       'currentIepDate',
       'currentPsychoReportDate',
+      'dateStudentStartedSchool',
     ]
 
     for (const [key, value] of Object.entries(validatedData)) {

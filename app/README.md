@@ -22,14 +22,14 @@ This package includes:
 - **Forms**: React Hook Form + Zod validation
 - **Database**: PostgreSQL (via Prisma ORM)
 - **File Storage**: Local filesystem → Laserfiche API (TODO)
-- **Email**: Placeholder (integrate SendGrid, Resend, or similar)
+- **Email**: Microsoft Graph API (Azure AD app credentials)
 
 ## Prerequisites
 
 - Node.js 18+ installed
 - PostgreSQL database (local or cloud)
 - Laserfiche API credentials (for document storage integration)
-- Email service credentials (SendGrid, Resend, etc.)
+- Azure AD app credentials for Microsoft Graph email sending
 
 ## Quick Start
 
@@ -131,19 +131,23 @@ Visit http://localhost:3000/referrals/new
 
 ### 1. Email Notifications
 
-Edit `/app/api/referrals/route.ts` and implement the `sendNotifications` function:
+Email delivery is implemented with Microsoft Graph in `lib/email.ts`.
+
+Use the existing helper functions from API routes:
 
 ```typescript
-import { Resend } from 'resend'; // or your email service
-const resend = new Resend(process.env.RESEND_API_KEY);
+import { sendReferralSubmittedToStaff } from '@/lib/email'
 
-async function sendNotifications(referral: ReferralData, formData: any) {
-  await resend.emails.send({
-    from: 'noreply@sutter.k12.ca.us',
-    to: ['amandac@sutter.k12.ca.us', 'leiab@sutter.k12.ca.us', 'janinef@sutter.k12.ca.us'],
-    subject: `New Interim Referral - ${formData.studentName}`,
-    html: `<p>New referral submitted...</p>`,
-  });
+async function sendNotifications(referralId: string, studentName: string, confirmationNumber: string) {
+  await sendReferralSubmittedToStaff(
+    ['amandac@sutter.k12.ca.us', 'leiab@sutter.k12.ca.us', 'janinef@sutter.k12.ca.us'],
+    {
+      referralId,
+      studentName,
+      confirmationNumber,
+      submitterEmail: 'submitter@example.com',
+    }
+  )
 }
 ```
 
@@ -279,9 +283,11 @@ Create a `.env.local` file:
 # Database
 DATABASE_URL="postgresql://user:password@localhost:5432/sped_referrals"
 
-# Email
-RESEND_API_KEY="re_xxxxxxxxxxxx"
-SENDGRID_API_KEY="SG.xxxxxxxxxxxx"
+# Email (Microsoft Graph)
+AZURE_TENANT_ID="your-tenant-id"
+AZURE_CLIENT_ID="your-app-client-id"
+AZURE_CLIENT_SECRET="your-app-client-secret"
+MAIL_FROM="noreply@sutter.k12.ca.us"
 
 # Laserfiche
 LASERFICHE_URL="https://api.laserfiche.com"
@@ -364,7 +370,7 @@ Should show appropriate error messages.
 
 ### Phase 3: Integrations
 - 🔲 Laserfiche document storage
-- 🔲 Email notifications (SendGrid/Resend)
+- 🔲 Email notifications (Microsoft Graph)
 - 🔲 Google SSO authentication
 - 🔲 Automated deadline reminders
 

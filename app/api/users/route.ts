@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { prisma } from '@/lib/prisma'
 import { hasPermission } from '@/lib/auth/permissions'
 import { sendUserInvitationEmail } from '@/lib/email'
-import type { Prisma } from '@prisma/client'
+import type { Prisma, UserRole } from '@prisma/client'
 import { z } from 'zod'
 
 const createUserSchema = z.object({
@@ -180,7 +180,7 @@ export async function GET(request: NextRequest) {
     const where: Prisma.UserWhereInput = {}
 
     if (role) {
-      where.role = role
+      where.role = role as UserRole
     }
 
     if (search) {
