@@ -36,6 +36,41 @@ export const PERMISSIONS = {
 
   // Dashboard changelog permissions
   'changelog:view': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+
+  // Classroom & Placement permissions
+  'classrooms:view': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'classrooms:create': ['ADMIN', 'SUPER_ADMIN'],
+  'classrooms:update': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'classrooms:delete': ['ADMIN', 'SUPER_ADMIN'],
+
+  // Student placements
+  'placements:view': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'placements:create': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'placements:update': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'placements:transfer': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'placements:delete': ['ADMIN', 'SUPER_ADMIN'],
+
+  // Staff management
+  'staff:view': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'staff:manage': ['ADMIN', 'SUPER_ADMIN'],
+
+  // Sites management
+  'sites:manage': ['ADMIN', 'SUPER_ADMIN'],
+
+  // Transport records
+  'transport:view': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'transport:update': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+
+  // RTD checklist
+  'rtd:update': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+
+  // Planning / sandbox mode
+  'planning:view': ['SPED_STAFF', 'ADMIN', 'SUPER_ADMIN'],
+  'planning:create': ['ADMIN', 'SUPER_ADMIN'],
+  'planning:publish': ['ADMIN', 'SUPER_ADMIN'],
+
+  // Audit log
+  'audit:view': ['ADMIN', 'SUPER_ADMIN'],
 } as const
 
 export type Permission = keyof typeof PERMISSIONS
