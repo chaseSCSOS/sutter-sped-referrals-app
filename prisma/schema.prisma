@@ -136,6 +136,7 @@ model Referral {
   assignedToStaff             User?     @relation("AssignedReferrals", fields: [assignedToStaffId], references: [id])
   submittedByUserId           String?
   submittedByUser             User?     @relation("SubmittedReferrals", fields: [submittedByUserId], references: [id])
+  placement                   StudentPlacement? @relation("ReferralPlacement")
 
   @@index([status])
   @@index([submittedAt])
@@ -514,6 +515,64 @@ enum FormType {
   LEVEL_II
 }
 
+enum ProgramSilo {
+  ASD_ELEM
+  ASD_MIDHS
+  SD
+  NC
+  DHH
+  ATP
+  MD
+}
+
+enum GradeBand {
+  PRE_TK
+  TK
+  K_2
+  THREE_FIVE
+  SIX_EIGHT
+  NINE_TWELVE
+  EIGHTEEN_22
+  MIXED
+}
+
+enum SessionType {
+  AM
+  PM
+  FULL_DAY
+  PERIOD_ATTENDANCE
+  SELF_CONTAINED
+}
+
+enum StaffRole {
+  TEACHER
+  CLASS_PARA
+  ONE_TO_ONE_PARA
+  INTERPRETER
+  SIGNING_PARA
+  LVN
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  REFERRAL_PENDING
+  REFERRAL_NOT_RECEIVED
+  REFERRAL_ON_HOLD
+  PLACED_NOT_IN_SYSTEMS
+  HOME_INSTRUCTION
+  RTD_IN_PROGRESS
+  EXITED
+}
+
+enum TransferReason {
+  GRADE_PROMOTION
+  CASELOAD_BALANCE
+  BEHAVIOR_PLACEMENT_CHANGE
+  PROGRAM_CHANGE
+  PARENT_REQUEST
+  OTHER
+}
+
 enum ChecklistItemType {
   STUDENT_REGISTRATION
   HOME_LANGUAGE_SURVEY
@@ -620,4 +679,283 @@ model AssessmentTest {
   @@index([vendorId])
   @@index([categoryId])
   @@index([isActive])
+}
+
+// ==================== PLACEMENT MODELS ====================
+
+model Site {
+  id         String      @id @default(uuid())
+  name       String      @unique
+  isActive   Boolean     @default(true)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  classrooms Classroom[]
+
+  @@index([isActive])
+}
+
+model StaffMember {
+  id                    String     @id @default(uuid())
+  name                  String
+  role                  StaffRole
+  positionControlNumber String?
+  credentials           String?
+  isVacancy             Boolean    @default(false)
+  isActive              Boolean    @default(true)
+  schoolYear            String
+
+  // For CLASS_PARA, INTERPRETER, SIGNING_PARA, LVN: linked to a classroom
+  classroomId           String?
+  classroom             Classroom? @relation("ClassroomParas", fields: [classroomId], references: [id])
+
+  // For ONE_TO_ONE_PARA: linked to a specific student
+  oneToOneStudentId     String?           @unique
+  oneToOneStudent       StudentPlacement? @relation("StudentOneToOnePara", fields: [oneToOneStudentId], references: [id])
+
+  // Back-reference: classrooms where this person is the teacher
+  taughtClassrooms      Classroom[] @relation("ClassroomTeacher")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+  @@index([schoolYear])
+  @@index([isActive])
+  @@index([classroomId])
+}
+
+model Classroom {
+  id                    String       @id @default(uuid())
+  programSilo           ProgramSilo
+  siteId                String
+  site                  Site         @relation(fields: [siteId], references: [id])
+  gradeBand             GradeBand
+  sessionNumber         String?
+  sessionType           SessionType
+  positionControlNumber String?
+  credentials           String?
+  maxCapacity           Int?
+  schoolYear            String
+  isOpenPosition        Boolean      @default(false)
+
+  // Teacher assignment (FK on Classroom side to avoid circular dependency)
+  teacherId             String?      @unique
+  teacher               StaffMember? @relation("ClassroomTeacher", fields: [teacherId], references: [id])
+
+  // Paras and other staff assigned to this classroom
+  paras                 StaffMember[] @relation("ClassroomParas")
+
+  // Student placements
+  studentPlacements     StudentPlacement[] @relation("ClassroomPlacements")
+
+  // Transfer events (origin and destination)
+  transfersFrom         TransferEvent[] @relation("TransferFromClassroom")
+  transfersTo           TransferEvent[] @relation("TransferToClassroom")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([programSilo])
+  @@index([siteId])
+  @@index([schoolYear])
+  @@index([teacherId])
+}
+
+model StudentPlacement {
+  id                  String           @id @default(uuid())
+  referralId          String           @unique
+  referral            Referral         @relation("ReferralPlacement", fields: [referralId], references: [id])
+
+  studentNameFirst    String
+  studentNameLast     String
+  dateOfBirth         DateTime
+  grade               String
+  districtOfResidence String?
+  disabilityCodes     String[]
+  primaryDisability   String?
+
+  classroomId         String?
+  classroom           Classroom?       @relation("ClassroomPlacements", fields: [classroomId], references: [id])
+
+  enrollmentStatus    EnrollmentStatus @default(REFERRAL_PENDING)
+  schoolYear          String
+
+  requires1to1        Boolean          @default(false)
+  oneToOnePara        StaffMember?     @relation("StudentOneToOnePara")
+
+  seisConfirmed       Boolean          @default(false)
+  seisConfirmedAt     DateTime?
+  seisConfirmedBy     String?
+  aeriesConfirmed     Boolean          @default(false)
+  aeriesConfirmedAt   DateTime?
+  aeriesConfirmedBy   String?
+
+  ageOutDate          DateTime?
+
+  notes               String?
+
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  transferEvents      TransferEvent[]  @relation("StudentTransfers")
+  rtdChecklist        RTDChecklist?    @relation("PlacementRTD")
+  transportRecord     TransportRecord? @relation("PlacementTransport")
+  auditLogs           PlacementAuditLog[] @relation("StudentAuditLogs")
+
+  @@index([classroomId])
+  @@index([enrollmentStatus])
+  @@index([schoolYear])
+}
+
+model TransferEvent {
+  id              String           @id @default(uuid())
+  studentId       String
+  student         StudentPlacement @relation("StudentTransfers", fields: [studentId], references: [id])
+  fromClassroomId String?
+  fromClassroom   Classroom?       @relation("TransferFromClassroom", fields: [fromClassroomId], references: [id])
+  toClassroomId   String?
+  toClassroom     Classroom?       @relation("TransferToClassroom", fields: [toClassroomId], references: [id])
+  effectiveDate   DateTime
+  reason          TransferReason
+  initiatedBy     String
+  notes           String?
+  createdAt       DateTime         @default(now())
+
+  @@index([studentId])
+  @@index([effectiveDate])
+}
+
+model RTDChecklist {
+  id                      String           @id @default(uuid())
+  studentId               String           @unique
+  student                 StudentPlacement @relation("PlacementRTD", fields: [studentId], references: [id])
+
+  dorNotified             Boolean @default(false)
+  dorNotifiedAt           DateTime?
+  dorNotifiedBy           String?
+
+  parentNotified          Boolean @default(false)
+  parentNotifiedAt        DateTime?
+  parentNotifiedBy        String?
+
+  secondStaffingCompleted Boolean @default(false)
+  secondStaffingAt        DateTime?
+  secondStaffingBy        String?
+
+  transitionIepHeld       Boolean @default(false)
+  transitionIepAt         DateTime?
+  transitionIepBy         String?
+
+  packetCompleted         Boolean @default(false)
+  packetCompletedAt       DateTime?
+  packetCompletedBy       String?
+
+  packetSignedScanned     Boolean @default(false)
+  packetSignedAt          DateTime?
+  packetSignedBy          String?
+
+  aeriesExitCompleted     Boolean @default(false)
+  aeriesExitAt            DateTime?
+  aeriesExitBy            String?
+
+  seisExitCompleted       Boolean @default(false)
+  seisExitAt              DateTime?
+  seisExitBy              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TransportRecord {
+  id                  String           @id @default(uuid())
+  studentId           String           @unique
+  student             StudentPlacement @relation("PlacementTransport", fields: [studentId], references: [id])
+
+  busNumber           String?
+  transportType       String?
+  amPmFlag            String?
+  specialTransportNotes String?
+
+  isWheelchair        Boolean @default(false)
+  needsCarSeat        Boolean @default(false)
+  needsSafetyVest     Boolean @default(false)
+  needsSafetyLock     Boolean @default(false)
+  needsBusAide        Boolean @default(false)
+  riderAtHome         Boolean @default(false)
+  reducedDaySchedule  Boolean @default(false)
+  transportPending    Boolean @default(true)
+
+  updatedAt DateTime @updatedAt
+}
+
+model PlacementAuditLog {
+  id         String            @id @default(uuid())
+  entityType String
+  entityId   String
+  field      String
+  oldValue   String?
+  newValue   String?
+  changedBy  String
+  changedAt  DateTime          @default(now())
+
+  studentId  String?
+  student    StudentPlacement? @relation("StudentAuditLogs", fields: [studentId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([studentId])
+  @@index([changedAt])
+}
+
+// ==================== SANDBOX / PLANNING MODELS ====================
+
+model PlanningDraft {
+  id              String                  @id @default(uuid())
+  name            String
+  description     String?
+  schoolYear      String
+  createdBy       String
+  createdAt       DateTime                @default(now())
+  updatedAt       DateTime                @updatedAt
+  publishedAt     DateTime?
+  isPublished     Boolean                 @default(false)
+
+  draftClassrooms   DraftClassroom[]
+  draftPlacements   DraftStudentPlacement[]
+}
+
+model DraftClassroom {
+  id                    String                  @id @default(uuid())
+  draftId               String
+  draft                 PlanningDraft           @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  sourceClassroomId     String?
+  programSilo           ProgramSilo
+  siteId                String
+  gradeBand             GradeBand
+  sessionType           SessionType
+  positionControlNumber String?
+  credentials           String?
+  teacherName           String?
+  isOpenPosition        Boolean                 @default(false)
+
+  draftPlacements DraftStudentPlacement[]
+
+  @@index([draftId])
+}
+
+model DraftStudentPlacement {
+  id                String          @id @default(uuid())
+  draftId           String
+  draft             PlanningDraft   @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  sourcePlacementId String?
+  draftClassroomId  String?
+  draftClassroom    DraftClassroom? @relation(fields: [draftClassroomId], references: [id])
+  studentNameFirst  String
+  studentNameLast   String
+  grade             String
+  primaryDisability String?
+  requires1to1      Boolean         @default(false)
+
+  @@index([draftId])
+  @@index([draftClassroomId])
 }
