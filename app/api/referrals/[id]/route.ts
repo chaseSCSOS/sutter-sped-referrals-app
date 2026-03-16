@@ -10,9 +10,11 @@ const updateReferralSchema = z.object({
   dateOfBirth: z.string().optional(),
   age: z.number().int().positive().optional(),
   grade: z.string().optional(),
-  gender: z.string().optional(),
+  gender: z.string().nullable().optional(),
   fosterYouth: z.boolean().optional(),
-  birthplace: z.string().optional(),
+  birthplace: z.string().nullable().optional(),
+  classroomTeacher: z.string().nullable().optional(),
+  pipIndicator: z.boolean().optional(),
 
   // Contact Information
   parentGuardianName: z.string().optional(),
@@ -24,7 +26,7 @@ const updateReferralSchema = z.object({
   zipCode: z.string().optional(),
 
   // School Information
-  schoolOfAttendance: z.string().optional(),
+  schoolOfAttendance: z.string().nullable().optional(),
   schoolOfResidence: z.string().optional(),
   transportationSpecialEd: z.boolean().optional(),
 
@@ -34,8 +36,8 @@ const updateReferralSchema = z.object({
   elStartDate: z.string().nullable().optional(),
   redesignated: z.boolean().nullable().optional(),
   reclassificationDate: z.string().nullable().optional(),
-  ethnicity: z.string().optional(),
-  residency: z.string().optional(),
+  ethnicity: z.string().nullable().optional(),
+  residency: z.string().nullable().optional(),
 
   // Placement
   placementType: z.enum(['FRA', 'SDC']).optional(),
@@ -46,9 +48,10 @@ const updateReferralSchema = z.object({
   disabilities: z.record(z.string(), z.string()).optional(),
 
   // SPED Dates
-  spedEntryDate: z.string().optional(),
+  deadlineDate: z.string().optional(),
+  spedEntryDate: z.string().nullable().optional(),
   interimPlacementReviewDate: z.string().nullable().optional(),
-  triennialDue: z.string().optional(),
+  triennialDue: z.string().nullable().optional(),
   currentIepDate: z.string().nullable().optional(),
   currentPsychoReportDate: z.string().nullable().optional(),
 
@@ -71,12 +74,22 @@ const updateReferralSchema = z.object({
   submittedByEmail: z.string().nullable().optional(),
   additionalComments: z.string().nullable().optional(),
 
+  // System Sync
+  inSEIS: z.boolean().optional(),
+  inSEISDate: z.string().nullable().optional(),
+  inAeries: z.boolean().optional(),
+  inAeriesDate: z.string().nullable().optional(),
+  cumNotes: z.string().nullable().optional(),
+
   // Operational fields (SPED_STAFF+ only)
   programTrack: z.enum(['GENERAL', 'BEHAVIOR', 'DHH', 'SCIP', 'VIP']).optional(),
   districtOfResidence: z.string().nullable().optional(),
   referringParty: z.string().nullable().optional(),
   dateStudentStartedSchool: z.string().nullable().optional(),
   serviceProvider: z.string().nullable().optional(),
+
+  // Teacher classroom assignment (triggers placement update, not stored on Referral)
+  classroomTeacherStaffId: z.string().uuid().nullable().optional(),
 })
 
 export async function PATCH(
@@ -135,9 +148,15 @@ export async function PATCH(
       'currentIepDate',
       'currentPsychoReportDate',
       'dateStudentStartedSchool',
+      'deadlineDate',
+      'inSEISDate',
+      'inAeriesDate',
     ]
 
-    for (const [key, value] of Object.entries(validatedData)) {
+    // Extract classroom teacher staff ID (not a Referral field, handled separately)
+    const { classroomTeacherStaffId, ...referralFields } = validatedData
+
+    for (const [key, value] of Object.entries(referralFields)) {
       if (value === undefined) continue
       if (dateFields.includes(key)) {
         updateData[key] = value === null ? null : new Date(value as string)
@@ -154,6 +173,46 @@ export async function PATCH(
         lastReviewedBy: user.name,
       },
     })
+
+    // If a teacher was selected, assign the student to their classroom
+    if (classroomTeacherStaffId !== undefined) {
+      if (classroomTeacherStaffId === null) {
+        // Clear classroom assignment (only if a placement exists)
+        await prisma.studentPlacement.updateMany({
+          where: { referralId: id },
+          data: { classroomId: null },
+        })
+      } else {
+        const classroom = await prisma.classroom.findFirst({
+          where: { teacherId: classroomTeacherStaffId },
+        })
+        if (classroom) {
+          // Split student name into first/last for placement record
+          const nameParts = updated.studentName.trim().split(' ')
+          const studentNameFirst = nameParts[0] || updated.studentName
+          const studentNameLast = nameParts.slice(1).join(' ') || nameParts[0] || updated.studentName
+
+          // Upsert: update existing placement or create a new one
+          await prisma.studentPlacement.upsert({
+            where: { referralId: id },
+            update: { classroomId: classroom.id },
+            create: {
+              referralId: id,
+              classroomId: classroom.id,
+              studentNameFirst,
+              studentNameLast,
+              dateOfBirth: updated.dateOfBirth,
+              grade: updated.grade,
+              schoolYear: classroom.schoolYear,
+              districtOfResidence: updated.districtOfResidence ?? null,
+              primaryDisability: updated.primaryDisability ?? null,
+              disabilityCodes: [],
+              enrollmentStatus: 'PLACED_NOT_IN_SYSTEMS',
+            },
+          })
+        }
+      }
+    }
 
     return NextResponse.json({ success: true, referral: updated })
   } catch (error) {

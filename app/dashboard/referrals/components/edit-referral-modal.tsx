@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { DISTRICTS } from '@/lib/constants/districts'
 
 interface EditReferralModalProps {
   referral: any
@@ -44,9 +46,20 @@ function FieldWide({ label, children }: { label: string; children: React.ReactNo
   )
 }
 
+interface Teacher {
+  id: string
+  name: string
+  classroom: {
+    id: string
+    site: { id: string; name: string }
+  } | null
+}
+
 export default function EditReferralModal({ referral, open, onClose }: EditReferralModalProps) {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [teachers, setTeachers] = useState<Teacher[]>([])
+  const [selectedTeacherId, setSelectedTeacherId] = useState<string>('')
 
   const inputCls = 'w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder-slate-400 transition focus:border-sky-400 focus:ring-2 focus:ring-sky-100 focus:outline-none'
   const selectCls = inputCls
@@ -125,6 +138,32 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
     return () => { document.body.style.overflow = '' }
   }, [open])
 
+  // Fetch teachers when modal opens
+  useEffect(() => {
+    if (!open) return
+    fetch('/api/staff?role=TEACHER&isActive=true')
+      .then(r => r.json())
+      .then(data => {
+        const list: Teacher[] = (data.staffMembers || [])
+          .filter((s: any) => !s.isVacancy)
+          .map((s: any) => ({
+            id: s.id,
+            name: s.name,
+            classroom: s.classroom ? {
+              id: s.classroom.id,
+              site: s.classroom.site,
+            } : null,
+          }))
+        setTeachers(list)
+        // Pre-select if current classroomTeacher matches a name
+        if (referral.classroomTeacher) {
+          const match = list.find(t => t.name === referral.classroomTeacher)
+          if (match) setSelectedTeacherId(match.id)
+        }
+      })
+      .catch(() => {})
+  }, [open])
+
   function set(field: string, value: any) {
     setForm(prev => ({ ...prev, [field]: value }))
   }
@@ -139,10 +178,15 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
         'submittedByEmail','additionalComments','silo','classroomTeacher','districtOfResidence',
         'referringParty','serviceProvider','cumNotes','dateStudentStartedSchool',
         'inSEISDate','inAeriesDate','birthplace','gender','ethnicity','residency',
+        'schoolOfAttendance','spedEntryDate','triennialDue',
       ]
       for (const f of nullableStr) {
         if (payload[f] === '') payload[f] = null
       }
+      // age must be a number or omitted (not empty string)
+      if (typeof payload.age !== 'number') delete payload.age
+      // Include teacher staff ID for classroom assignment
+      payload.classroomTeacherStaffId = selectedTeacherId || null
       const res = await fetch(`/api/referrals/${referral.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -164,7 +208,7 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
 
   if (!open) return null
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop */}
       <div
@@ -211,7 +255,11 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
                 <input className={inputCls} value={form.grade} onChange={e => set('grade', e.target.value)} placeholder="e.g. K, 1, TK, PS" />
               </Field>
               <Field label="Gender">
-                <input className={inputCls} value={form.gender} onChange={e => set('gender', e.target.value)} />
+                <select className={selectCls} value={form.gender} onChange={e => set('gender', e.target.value)}>
+                  <option value="">— Select —</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                </select>
               </Field>
               <Field label="Birthplace">
                 <input className={inputCls} value={form.birthplace} onChange={e => set('birthplace', e.target.value)} />
@@ -223,7 +271,24 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
                 </select>
               </Field>
               <Field label="Classroom Teacher">
-                <input className={inputCls} value={form.classroomTeacher} onChange={e => set('classroomTeacher', e.target.value)} placeholder="e.g. A. Mays 4th" />
+                <select
+                  className={selectCls}
+                  value={selectedTeacherId}
+                  onChange={e => {
+                    const tid = e.target.value
+                    setSelectedTeacherId(tid)
+                    const teacher = teachers.find(t => t.id === tid)
+                    set('classroomTeacher', teacher ? teacher.name : '')
+                    set('schoolOfAttendance', teacher?.classroom?.site?.name || form.schoolOfAttendance)
+                  }}
+                >
+                  <option value="">— Select teacher —</option>
+                  {teachers.map(t => (
+                    <option key={t.id} value={t.id}>
+                      {t.name}{t.classroom?.site ? ` (${t.classroom.site.name})` : ''}
+                    </option>
+                  ))}
+                </select>
               </Field>
               <Field label="PIP">
                 <select className={selectCls} value={form.pipIndicator ? 'yes' : 'no'} onChange={e => set('pipIndicator', e.target.value === 'yes')}>
@@ -293,7 +358,12 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
                 </select>
               </Field>
               <Field label="District of Residence (DOR)">
-                <input className={inputCls} value={form.districtOfResidence} onChange={e => set('districtOfResidence', e.target.value)} />
+                <select className={inputCls} value={form.districtOfResidence} onChange={e => set('districtOfResidence', e.target.value)}>
+                  <option value="">Select district...</option>
+                  {DISTRICTS.map((d) => (
+                    <option key={d} value={d}>{d}</option>
+                  ))}
+                </select>
               </Field>
               <Field label="School of Attendance">
                 <input className={inputCls} value={form.schoolOfAttendance} onChange={e => set('schoolOfAttendance', e.target.value)} />
@@ -503,6 +573,7 @@ export default function EditReferralModal({ referral, open, onClose }: EditRefer
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   )
 }

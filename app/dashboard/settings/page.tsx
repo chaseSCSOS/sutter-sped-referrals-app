@@ -5,15 +5,23 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { SYSTEM_ROLE_LABELS, USER_ROLE_VALUES } from '@/lib/auth/role-options'
 import type { UserRole } from '@prisma/client'
 import { UsersTab } from './users-tab'
+import { SitesTab } from './sites-tab'
+import { StaffTab } from './staff-tab'
+import { ClassroomsTab } from './classrooms-tab'
 import { EmailTemplatePreviewPanel } from './email-template-preview-panel'
+import { useAuth } from '@/lib/auth/hooks'
+import { hasPermission } from '@/lib/auth/permissions'
 
-type Tab = 'email' | 'assessments' | 'userRoles' | 'users'
+type Tab = 'email' | 'assessments' | 'userRoles' | 'users' | 'sites' | 'staff' | 'classrooms'
 
-const TABS: { key: Tab; label: string }[] = [
+const ALL_TABS: { key: Tab; label: string; permission?: Parameters<typeof hasPermission>[1] }[] = [
   { key: 'email',       label: 'Email & Reminders' },
   { key: 'assessments', label: 'Assessments' },
   { key: 'userRoles',   label: 'User Roles' },
   { key: 'users',       label: 'Users' },
+  { key: 'sites',       label: 'Sites', permission: 'sites:manage' },
+  { key: 'staff',       label: 'Staff', permission: 'staff:view' },
+  { key: 'classrooms',  label: 'Classrooms', permission: 'classrooms:view' },
 ]
 
 const inputClass =
@@ -27,6 +35,12 @@ const cardShadow = { boxShadow: '0 2px 8px rgba(0,0,0,0.04)' }
 function SettingsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { user: currentUser } = useAuth()
+
+  const TABS = ALL_TABS.filter(t =>
+    !t.permission || (currentUser && hasPermission(currentUser.role, t.permission))
+  )
+
   const initialTab = (searchParams.get('tab') as Tab | null) ?? 'email'
   const [activeTab, setActiveTab] = useState<Tab>(
     TABS.some(t => t.key === initialTab) ? initialTab : 'email'
@@ -243,6 +257,9 @@ function SettingsContent() {
       {activeTab === 'assessments' && <AssessmentCatalogSettings />}
       {activeTab === 'userRoles'   && <UserRoleSettings />}
       {activeTab === 'users'       && <UsersTab />}
+      {activeTab === 'sites'       && <SitesTab />}
+      {activeTab === 'staff'       && <StaffTab />}
+      {activeTab === 'classrooms'  && <ClassroomsTab />}
     </div>
   )
 }

@@ -11,6 +11,7 @@ import DetailHeader from '../components/detail-header'
 import ProgramClassificationPanel from '../components/program-classification-panel'
 import CumWorkflowPanel from '../components/cum-workflow-panel'
 import SystemSyncPanel from '../components/system-sync-panel'
+import AssignToClassroom from '../components/assign-to-classroom'
 
 interface ReferralDetailPageProps {
   params: Promise<{ id: string }>
@@ -31,6 +32,17 @@ const DISABILITY_LABELS: Record<string, string> = {
   '310': 'Multiple Disabilities',
   '320': 'Autism',
   '330': 'Established Medical Disability (EMD)',
+}
+
+function calculateAge(dateOfBirth: string | Date): number | null {
+  if (!dateOfBirth) return null
+  const birth = new Date(dateOfBirth)
+  if (isNaN(birth.getTime())) return null
+  const today = new Date()
+  let age = today.getFullYear() - birth.getFullYear()
+  const m = today.getMonth() - birth.getMonth()
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--
+  return age
 }
 
 export default async function ReferralDetailPage({ params }: ReferralDetailPageProps) {
@@ -67,6 +79,18 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
       notes: { orderBy: { createdAt: 'desc' } },
       assignedToStaff: { select: { id: true, name: true } },
       submittedByUser: { select: { id: true, name: true, email: true } },
+      placement: {
+        select: {
+          id: true,
+          enrollmentStatus: true,
+          classroom: {
+            include: {
+              site: true,
+              teacher: true,
+            },
+          },
+        },
+      },
     },
   })
 
@@ -155,7 +179,7 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-10">
         <div className="bg-white/80 backdrop-blur rounded-2xl border border-cream-200 px-5 py-4">
           <p className="text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-1">Age</p>
-          <p className="text-2xl font-bold text-warm-gray-900">{referral.age}</p>
+          <p className="text-2xl font-bold text-warm-gray-900">{calculateAge(referral.dateOfBirth) ?? referral.age ?? '—'}</p>
         </div>
         <div className="bg-white/80 backdrop-blur rounded-2xl border border-cream-200 px-5 py-4">
           <p className="text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-1">Grade</p>
@@ -487,21 +511,26 @@ export default async function ReferralDetailPage({ params }: ReferralDetailPageP
           ZONE 2.5: Operational Panels — 3-column grid (staff only)
           ═══════════════════════════════════════════════════════════════ */}
       {canWriteOperational && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <ProgramClassificationPanel
-            referral={serializedReferral}
-            canUpdate={canWriteOperational}
-          />
-          <CumWorkflowPanel
-            referral={serializedReferral}
-            canManage={canManageCum}
-            staffList={staffList}
-          />
-          <SystemSyncPanel
-            referral={serializedReferral}
-            canManage={canManageSync}
-          />
-        </div>
+        <>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <ProgramClassificationPanel
+              referral={serializedReferral}
+              canUpdate={canWriteOperational}
+            />
+            <CumWorkflowPanel
+              referral={serializedReferral}
+              canManage={canManageCum}
+              staffList={staffList}
+            />
+            <SystemSyncPanel
+              referral={serializedReferral}
+              canManage={canManageSync}
+            />
+          </div>
+          <div className="mb-8">
+            <AssignToClassroom referral={serializedReferral} />
+          </div>
+        </>
       )}
 
       {/* ═══════════════════════════════════════════════════════════════

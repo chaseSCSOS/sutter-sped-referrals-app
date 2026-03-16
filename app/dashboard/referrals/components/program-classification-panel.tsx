@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { DISTRICTS } from '@/lib/constants/districts'
 
 interface ProgramClassificationPanelProps {
   referral: any
@@ -189,13 +190,16 @@ export default function ProgramClassificationPanel({ referral, canUpdate }: Prog
               <label className="block text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-1">
                 District of Residence
               </label>
-              <input
-                type="text"
+              <select
                 value={form.districtOfResidence}
                 onChange={e => setForm(f => ({ ...f, districtOfResidence: e.target.value }))}
                 className="w-full rounded-xl border border-cream-200 bg-white px-3 py-2 text-sm text-warm-gray-800 focus:outline-none focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
-                placeholder="e.g. Yuba City USD"
-              />
+              >
+                <option value="">Select district...</option>
+                {DISTRICTS.map((d) => (
+                  <option key={d} value={d}>{d}</option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="block text-[11px] uppercase tracking-wider text-warm-gray-400 font-semibold mb-1">

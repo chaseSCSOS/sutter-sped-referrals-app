@@ -525,16 +525,6 @@ enum ProgramSilo {
   MD
 }
 
-enum GradeBand {
-  PRE_TK
-  TK
-  K_2
-  THREE_FIVE
-  SIX_EIGHT
-  NINE_TWELVE
-  EIGHTEEN_22
-  MIXED
-}
 
 enum SessionType {
   AM
@@ -686,6 +676,7 @@ model AssessmentTest {
 model Site {
   id         String      @id @default(uuid())
   name       String      @unique
+  district   String?
   isActive   Boolean     @default(true)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -727,10 +718,12 @@ model StaffMember {
 
 model Classroom {
   id                    String       @id @default(uuid())
+  classroomNumber       String?
   programSilo           ProgramSilo
   siteId                String
   site                  Site         @relation(fields: [siteId], references: [id])
-  gradeBand             GradeBand
+  gradeStart            String       @default("K")
+  gradeEnd              String       @default("K")
   sessionNumber         String?
   sessionType           SessionType
   positionControlNumber String?
@@ -740,7 +733,7 @@ model Classroom {
   isOpenPosition        Boolean      @default(false)
 
   // Teacher assignment (FK on Classroom side to avoid circular dependency)
-  teacherId             String?      @unique
+  teacherId             String?
   teacher               StaffMember? @relation("ClassroomTeacher", fields: [teacherId], references: [id])
 
   // Paras and other staff assigned to this classroom
@@ -932,7 +925,8 @@ model DraftClassroom {
   sourceClassroomId     String?
   programSilo           ProgramSilo
   siteId                String
-  gradeBand             GradeBand
+  gradeStart            String                  @default("K")
+  gradeEnd              String                  @default("K")
   sessionType           SessionType
   positionControlNumber String?
   credentials           String?
