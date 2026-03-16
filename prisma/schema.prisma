@@ -886,6 +886,7 @@ model TransportRecord {
   reducedDaySchedule  Boolean @default(false)
   transportPending    Boolean @default(true)
 
+  createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
@@ -949,7 +950,7 @@ model DraftStudentPlacement {
   draft             PlanningDraft   @relation(fields: [draftId], references: [id], onDelete: Cascade)
   sourcePlacementId String?
   draftClassroomId  String?
-  draftClassroom    DraftClassroom? @relation(fields: [draftClassroomId], references: [id])
+  draftClassroom    DraftClassroom? @relation(fields: [draftClassroomId], references: [id], onDelete: SetNull)
   studentNameFirst  String
   studentNameLast   String
   grade             String
